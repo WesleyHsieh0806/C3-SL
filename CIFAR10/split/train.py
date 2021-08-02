@@ -317,7 +317,7 @@ with open(os.path.join(
     f.write(str(test_loss_list[-1]))
 
 with open(os.path.join(
-        saved_path, "train_grad_rec_loss_{}_{}.csv".format(args.batch)), "w") as f:
+        saved_path, "train_grad_rec_loss_{}.csv".format(args.batch)), "w") as f:
     for i in range(len(train_grad_rec_loss_list)-1):
         f.write(str(train_grad_rec_loss_list[i])+",")
     f.write(str(train_grad_rec_loss_list[-1]))
