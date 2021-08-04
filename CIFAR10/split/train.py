@@ -160,6 +160,7 @@ class SplitAlexNet(nn.Module):
         # detach() returns a new tensor but shares the old memory
         # the gradient of tensor z.detach() != the gradient of z
         recover_z = circular_corr(encrypt_z, key)
+        self.front.append(recover_z)
         self.remote.append(recover_z.detach().requires_grad_())
 
         return self.models[1](self.remote[0].reshape([len(self.remote[0]), -1]))
@@ -213,17 +214,22 @@ best_acc = 0.
 best_loss = float("inf")
 train_acc_list = []
 train_loss_list = []
+train_rec_loss_list = []
 test_acc_list = []
 test_loss_list = []
 train_grad_rec_loss_list = []
+test_rec_loss_list = []
+
 for epoch in range(1, num_epoch+1):
     ''' Training part'''
     model.train()
     train_loss = 0.
     train_acc = 0.
     train_grad_rec_loss = 0.
+    train_rec_loss = 0.
     test_loss = 0.
     test_acc = 0.
+    test_rec_loss = 0.
     epoch_start_time = time.time()
     for i, (train_x, train_y) in enumerate(Train_Loader, 1):
         print("Batch [{}/{}]".format(i, len(Train_Loader)), end='\r')
@@ -235,6 +241,7 @@ for epoch in range(1, num_epoch+1):
 
         # Compute the loss
         batch_loss = loss(y_pred, train_y)
+        batch_L_rec = torch.mean((model.front[1]-model.front[0])**2)
 
         # Clean the gradient
         model.zero_grad()
@@ -247,10 +254,12 @@ for epoch in range(1, num_epoch+1):
 
         train_grad_rec_loss += len(train_x) * batch_L_grad_rec.item()
         train_loss += len(train_x) * batch_loss.item()
+        train_rec_loss += len(train_x) * (batch_L_rec).item()
         train_acc += np.sum(np.argmax(y_pred.detach().cpu().numpy(),
                                       axis=1) == train_y.cpu().numpy())
     train_loss /= Train_Dataset.__len__()
     train_acc /= Train_Dataset.__len__()
+    train_rec_loss /= Train_Dataset.__len__()
     train_grad_rec_loss /= Train_Dataset.__len__()
 
     # Testing part
@@ -264,9 +273,12 @@ for epoch in range(1, num_epoch+1):
 
             # Compute the loss and acc
             test_loss += loss(y_pred, test_y).item() * len(test_x)
+            test_rec_loss += torch.mean(
+                (model.front[1]-model.front[0])**2).item() * len(test_x)
             test_acc += np.sum(np.argmax(y_pred.detach().cpu().numpy(),
                                          axis=1) == test_y.cpu().numpy())
     test_loss /= len(Test_Dataset)
+    test_rec_loss /= len(Test_Dataset)
     test_acc /= len(Test_Dataset)
     # Output the result
     print("Epoch [{}/{}] Time:{:.3f} secs Train_acc:{:.4f} Train_loss:{:.4f}".format(epoch, num_epoch, time.time()-epoch_start_time,
@@ -277,9 +289,11 @@ for epoch in range(1, num_epoch+1):
     # Append the accuracy and loss to list
     train_acc_list.append(train_acc)
     train_loss_list.append(train_loss)
+    train_rec_loss_list.append(train_rec_loss)
     train_grad_rec_loss_list.append(train_grad_rec_loss)
     test_acc_list.append(test_acc)
     test_loss_list.append(test_loss)
+    test_rec_loss_list.append(test_rec_loss)
 
     ''' Save the best model '''
     if test_acc > best_acc:
@@ -303,6 +317,11 @@ with open(os.path.join(
         f.write(str(train_loss_list[i])+",")
     f.write(str(train_loss_list[-1]))
 
+with open(os.path.join(saved_path, "train_rec_loss_{}_{}.csv".format(args.batch, args.Lambda)), "w") as f:
+    for i in range(len(train_rec_loss_list)-1):
+        f.write(str(train_rec_loss_list[i])+",")
+    f.write(str(train_rec_loss_list[-1]))
+
 # Record the validation accuracy and validation loss
 with open(os.path.join(
         saved_path, "test_accuracy_batch{}.csv".format(args.batch)), "w") as f:
@@ -321,3 +340,8 @@ with open(os.path.join(
     for i in range(len(train_grad_rec_loss_list)-1):
         f.write(str(train_grad_rec_loss_list[i])+",")
     f.write(str(train_grad_rec_loss_list[-1]))
+
+with open(os.path.join(saved_path, "test_rec_loss_{}_{}.csv".format(args.batch, args.Lambda)), "w") as f:
+    for i in range(len(test_rec_loss_list)-1):
+        f.write(str(test_rec_loss_list[i])+",")
+    f.write(str(test_rec_loss_list[-1]))
