@@ -317,7 +317,7 @@ with open(os.path.join(
         f.write(str(train_loss_list[i])+",")
     f.write(str(train_loss_list[-1]))
 
-with open(os.path.join(saved_path, "train_rec_loss_{}_{}.csv".format(args.batch, args.Lambda)), "w") as f:
+with open(os.path.join(saved_path, "train_rec_loss_{}.csv".format(args.batch)), "w") as f:
     for i in range(len(train_rec_loss_list)-1):
         f.write(str(train_rec_loss_list[i])+",")
     f.write(str(train_rec_loss_list[-1]))
@@ -341,7 +341,7 @@ with open(os.path.join(
         f.write(str(train_grad_rec_loss_list[i])+",")
     f.write(str(train_grad_rec_loss_list[-1]))
 
-with open(os.path.join(saved_path, "test_rec_loss_{}_{}.csv".format(args.batch, args.Lambda)), "w") as f:
+with open(os.path.join(saved_path, "test_rec_loss_{}.csv".format(args.batch)), "w") as f:
     for i in range(len(test_rec_loss_list)-1):
         f.write(str(test_rec_loss_list[i])+",")
     f.write(str(test_rec_loss_list[-1]))
