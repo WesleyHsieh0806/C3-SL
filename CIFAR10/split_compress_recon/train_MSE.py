@@ -44,7 +44,14 @@ parser.add_argument("--epoch", required=False, type=int,
                     default=30, help="The batch size")
 parser.add_argument("--Lambda", required=False, type=float,
                     default=0.0001, help="The batch size")
+parser.add_argument("--dump_path", required=True, type=str,
+                    default='./log',
+                    help="The saved path of logs and models(Relative)")
 args = parser.parse_args()
+
+saved_path = os.path.join(Dir, args.dump_path)
+if not os.path.isdir(saved_path):
+    os.makedirs(saved_path)
 ''' 
 ********************************************
 * Data Augmentation and Dataset, DataLoader
@@ -319,51 +326,47 @@ for epoch in range(1, num_epoch+1):
         best_loss = test_CE_loss
         print("Save model with Test_acc:{:.4f} test_CE_loss:{:.4f} at {}".format(
             best_acc, best_loss, os.path.join(
-                Dir, "Alexnet.pth")))
+                saved_path, "Alexnet.pth")))
         torch.save(model.state_dict(), os.path.join(
-            Dir, "Alexnet.pth"))
+            saved_path, "Alexnet.pth"))
 
-if not os.path.isdir(os.path.join(
-        os.path.dirname(__file__), "Exponential Lambda Log")):
-    os.makedirs(os.path.join(
-        os.path.dirname(__file__), "Exponential Lambda Log"))
 # Record the train acc and train loss
 with open(os.path.join(
-        os.path.dirname(__file__), "Exponential Lambda Log", "train_accuracy_{}_{}.csv".format(args.batch, args.Lambda)), "w") as f:
+        saved_path, "train_accuracy_{}.csv".format(args.batch)), "w") as f:
     for i in range(len(train_acc_list)-1):
         f.write(str(train_acc_list[i])+",")
     f.write(str(train_acc_list[-1]))
 with open(os.path.join(
-        os.path.dirname(__file__), "Exponential Lambda Log", "train_CE_loss_{}_{}.csv".format(args.batch, args.Lambda)), "w") as f:
+        saved_path, "train_CE_loss_{}.csv".format(args.batch)), "w") as f:
     for i in range(len(train_CE_loss_list)-1):
         f.write(str(train_CE_loss_list[i])+",")
     f.write(str(train_CE_loss_list[-1]))
 
 with open(os.path.join(
-        os.path.dirname(__file__), "Exponential Lambda Log", "train_rec_loss_{}_{}.csv".format(args.batch, args.Lambda)), "w") as f:
+        saved_path, "train_rec_loss_{}.csv".format(args.batch)), "w") as f:
     for i in range(len(train_rec_loss_list)-1):
         f.write(str(train_rec_loss_list[i])+",")
     f.write(str(train_rec_loss_list[-1]))
 with open(os.path.join(
-        os.path.dirname(__file__), "Exponential Lambda Log", "train_grad_rec_loss_{}_{}.csv".format(args.batch, args.Lambda)), "w") as f:
+        saved_path, "train_grad_rec_loss_{}.csv".format(args.batch)), "w") as f:
     for i in range(len(train_grad_rec_loss_list)-1):
         f.write(str(train_grad_rec_loss_list[i])+",")
     f.write(str(train_grad_rec_loss_list[-1]))
 
 # Record the validation accuracy and validation loss
 with open(os.path.join(
-        os.path.dirname(__file__), "Exponential Lambda Log", "test_accuracy_{}_{}.csv".format(args.batch, args.Lambda)), "w") as f:
+        saved_path, "test_accuracy_{}.csv".format(args.batch)), "w") as f:
     for i in range(len(test_acc_list)-1):
         f.write(str(test_acc_list[i])+",")
     f.write(str(test_acc_list[-1]))
 
 with open(os.path.join(
-        os.path.dirname(__file__), "Exponential Lambda Log", "test_CE_loss_{}_{}.csv".format(args.batch, args.Lambda)), "w") as f:
+        saved_path, "test_CE_loss_{}.csv".format(args.batch)), "w") as f:
     for i in range(len(test_CE_loss_list)-1):
         f.write(str(test_CE_loss_list[i])+",")
     f.write(str(test_CE_loss_list[-1]))
 with open(os.path.join(
-        os.path.dirname(__file__), "Exponential Lambda Log", "test_rec_loss_{}_{}.csv".format(args.batch, args.Lambda)), "w") as f:
+        saved_path, "test_rec_loss_{}.csv".format(args.batch)), "w") as f:
     for i in range(len(test_rec_loss_list)-1):
         f.write(str(test_rec_loss_list[i])+",")
     f.write(str(test_rec_loss_list[-1]))
