@@ -10,10 +10,13 @@ from utils import circular_conv, circular_corr
 
 
 class ECC():
-    def __init__(self, nofkey) -> None:
+    ''' Encryption and Compression Module'''
 
-    def generate_key(self, nofkey):
-        # Generate the key
+    def __init__(self) -> None:
+        self.key = None
+
+    def generate_key(self, W):
+        # * Key:(Batch size, nof_feature)->(1, 1, Batch size, nof_feature)
         mean = 0
         dim = 1
         for i in range(len(W.shape)):
@@ -22,6 +25,41 @@ class ECC():
         Key = (torch.randn(W.shape)*std + mean).cuda()
         Key /= torch.norm(Key, dim=1, keepdim=True)
         Key = Key.reshape([1, 1, Key.shape[0], -1])
+        self.key = Key
+
+    def __call__(self, z):
+        ''' 
+        * Return: Compressed_V(Detached) and  recover_z
+        '''
+        # z:(Batch, noffeature)
+
+        # Encode z(batch, nof_feature) by circulation convolution
+        if self.key is None:
+            self.generate_key(z)
+
+        # The last batch normally contains less samples, so we have to adjust the key here
+        self.bs = z.shape[0]
+        key = self.key[:, :, :self.bs, :]
+
+        compress_V = circular_conv(z, key)
+        # Compress V (1, nof_feature)
+
+        # Decode the compress_V and reshape
+        recover_z = circular_corr(compress_V, key)
+
+        return compress_V, recover_z
+
+    def decrypt(self, compress_V):
+        key = self.key[:, :, :self.bs, :]
+        return circular_corr(compress_V, key)
+
+    def encrypt_Compressed_grad(self, compress_grad):
+        key = self.key[:, :, :1, :]
+        return circular_conv(compress_grad, key)
+
+    def decrypt_Compressed_grad(self, en_compress_grad):
+        key = self.key[:, :, :1, :]
+        return circular_corr(en_compress_grad, key)
 
 
 class SplitAlexNet(nn.Module):
@@ -45,7 +83,8 @@ class SplitAlexNet(nn.Module):
         # Two optimizers for each half
         self.optimizers = [torch.optim.Adam(
             model.parameters(), lr=learning_rate) for model in self.models]
-        self.key = None
+        # Encryption and Compression Module
+        self.ecc = ECC()
 
     def train(self):
         for model in self.models:
@@ -67,30 +106,24 @@ class SplitAlexNet(nn.Module):
         self.remote = []
         z = self.models[0](image)
         z = z.flatten(start_dim=1)
-        self.front.append(z)
 
-        # Encode z(batch, nof_feature) by circulation convolution
-        if self.key is None:
-            self.key, compress_V = circular_conv(z)
-            key = self.key
-        else:
-            # key(1,1,batch,noffeature)
-            key = self.key[:, :, :z.shape[0], :]
-            compress_V = circular_conv(z, key)
-        # Compress V (1, nof_feature)
+        # ECC Encryption
+        compress_V, recover_z = self.ecc(z)
+        self.front = [z, recover_z, compress_V]
 
-        # Decode the compress_V and reshape
-        recover_z = circular_corr(compress_V, key)
-
-        # Store recover_z for later reconstruction loss
-        self.front.append(recover_z)
-
+        ''' ******
+        * Cloud  *
+        **********
+        '''
         # use requires_grad() Since the result of detach never requires grad
         # detach() returns a new tensor but shares the old memory
         # the gradient of tensor z.detach() != the gradient of z
-        self.remote.append(recover_z.detach().requires_grad_())
+        self.remote.append(compress_V.detach().requires_grad_())
 
-        return self.models[1](self.remote[0])
+        # ECC Decryption
+        remote_recover_z = self.ecc.decrypt(self.remote[0])
+
+        return self.models[1](remote_recover_z)
 
     def backward(self, L_CE, L_rec, Lambda=0.2):
         ''' When we call L_CE.backward(), it only backwards for the last half layers
@@ -101,27 +134,22 @@ class SplitAlexNet(nn.Module):
         L.backward(retain_graph=True)
 
         ''' 
-        * image <-z | KoV=z.grad <- compressV <- K * grad_z=V |<- remote_z.grad <-output
+        * image <-compress_V.grad <-|<- K o (K* remote_compress_V.grad) <- K * remote_compress_V.grad |<- remote_compress_V.grad <-output
         '''
         # Copy the gradient
-        # (batch, nof_feature)
-        bs = self.remote[0].shape[0]
-        remote_grad_z = self.remote[0].grad.clone()
+        # (1, nof_feature)
+        remote_grad_CompressV = self.remote[0].grad.clone()
 
-        # Sum up all the gradients -> (1, nof_featrue)
-        remote_grad_z = torch.mean(remote_grad_z, dim=0, keepdim=True)
-
-        key = self.key[:, :, :remote_grad_z.shape[0], :]  # (1,1,B, nofeature)
-
-        # Encode the gradient
-        compress_V = circular_conv(remote_grad_z, key)
+        # Encrpt the gradient
+        en_grad_CompressV = self.ecc.encrypt_Compressed_grad(
+            remote_grad_CompressV)
 
         # Decode the V
-        grad_z = circular_corr(compress_V, key)
-        self.front[0].backward(grad_z.repeat([bs, 1]))
+        grad_CompressV = self.ecc.decrypt_Compressed_grad(en_grad_CompressV)
+        self.front[2].backward(grad_CompressV)
 
         # Return the loss between gradient
-        return torch.mean((remote_grad_z-grad_z)**2).detach()
+        return torch.mean((grad_CompressV-remote_grad_CompressV)**2).detach()
 
     def zero_grad(self):
         for optimizer in self.optimizers:
