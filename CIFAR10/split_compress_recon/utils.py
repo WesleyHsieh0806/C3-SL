@@ -39,7 +39,7 @@ def circular_conv(W, Key=None):
         # Generate the key
         mean = 0
         dim = 1
-        for i in range(len(W.shape)):
+        for i in range(1, len(W.shape)):
             dim *= W.shape[i]
         std = (1/dim) ** (1/2)
         Key = (torch.randn(W.shape)*std + mean).cuda()
