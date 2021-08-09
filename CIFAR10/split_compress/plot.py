@@ -5,7 +5,7 @@ from matplotlib.pyplot import cm
 
 Dir = os.path.dirname(__file__)
 split_compress_path = os.path.join(Dir, "log")
-split_path = os.path.join(Dir, '..', 'split', 'log')
+split_path = os.path.join(Dir, '..', 'split', 'log', "Gradient_Loss")
 centralized_path = os.path.join(Dir, '..', 'centralized', 'log')
 
 ''' 

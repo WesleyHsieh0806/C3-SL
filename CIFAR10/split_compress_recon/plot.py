@@ -6,7 +6,7 @@ from matplotlib.pyplot import cm
 Dir = os.path.dirname(__file__)
 split_compress_recon_path = os.path.join(Dir,  "log")
 split_compress_path = os.path.join(Dir, '..', 'split_compress', "log")
-split_path = os.path.join(Dir, '..', 'split', 'log')
+split_path = os.path.join(Dir, '..', 'split', 'log', "Gradient_Loss")
 
 ''' 
 * Plot test accuracy

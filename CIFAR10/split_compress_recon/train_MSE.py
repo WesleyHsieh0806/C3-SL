@@ -218,8 +218,7 @@ class SplitAlexNet(nn.Module):
 
 
 learning_rate = 1e-4
-Lambdas = [args.Lambda*i/args.epoch if i >=
-           10 else 0 for i in range(args.epoch+1)]
+Lambdas = [args.Lambda*i/args.epoch for i in range(args.epoch+1)]
 num_epoch = args.epoch
 
 model = SplitAlexNet()
