@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 import os
 import torchvision.models
 import torch.nn as nn
-from utils import circular_conv, circular_corr
+from utils import circular_conv, circular_corr, normalize_for_circular
+from math import sqrt
 
 
 class ECC():
@@ -106,6 +107,7 @@ class SplitAlexNet(nn.Module):
         self.remote = []
         z = self.models[0](image)
         z = z.flatten(start_dim=1)
+        z, _, _ = normalize_for_circular(z)  # normalize
 
         # ECC Encryption
         compress_V, recover_z = self.ecc(z)
@@ -140,16 +142,26 @@ class SplitAlexNet(nn.Module):
         # (1, nof_feature)
         remote_grad_CompressV = self.remote[0].grad.clone()
 
+        # mathematically, normalize before encrypt and reduce the reconstruction loss
+        norm_remote_grad_CompressV, STD, MEAN = normalize_for_circular(
+            remote_grad_CompressV)
+
         # Encrpt the gradient
         en_grad_CompressV = self.ecc.encrypt_Compressed_grad(
-            remote_grad_CompressV)
+            norm_remote_grad_CompressV)
 
         # Decode the V
         grad_CompressV = self.ecc.decrypt_Compressed_grad(en_grad_CompressV)
-        self.front[2].backward(grad_CompressV)
+
+        # Cancel the normalization
+        de_grad_CompressV = grad_CompressV * \
+            (STD*sqrt(grad_CompressV.shape[-1]))
+        de_grad_CompressV = de_grad_CompressV + MEAN
+
+        self.front[2].backward(de_grad_CompressV)
 
         # Return the loss between gradient
-        return torch.mean((grad_CompressV-remote_grad_CompressV)**2).detach()
+        return torch.mean((de_grad_CompressV-remote_grad_CompressV)**2).detach()
 
     def zero_grad(self):
         for optimizer in self.optimizers:

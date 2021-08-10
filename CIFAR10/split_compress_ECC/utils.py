@@ -1,5 +1,18 @@
 import torch
 import torch.nn.functional as F
+from math import sqrt
+
+
+def normalize_for_circular(W):
+    '''
+    * W: shape(Batch, nof_feature)
+    * Normalize input tensor to N(0, 1/d)
+    '''
+    # Normalize W to N(0, 1/d)
+    std, mean = torch.std_mean(W, dim=1, keepdim=True)
+    W = W - mean
+    W = W/(sqrt(W.shape[-1])*std)
+    return W, std, mean
 
 
 def circular_pad2d(Input, pad: tuple):
@@ -60,6 +73,7 @@ def circular_corr(compress_V, Key):
     # Circular pad compressV -> [v0 v1 v2] -> [v0 v1 v2 v0 v1]
     # Key = [k0 k1 k2]
     compress_V = compress_V.unsqueeze(dim=0)
+
     Key = Key.reshape([Key.shape[2], 1, -1])
     W = F.conv1d(circular_pad1d(
         compress_V, pad=(0, compress_V.shape[-1]-1)), Key, stride=1)
