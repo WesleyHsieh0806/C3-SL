@@ -10,9 +10,9 @@ from torch.utils.data import DataLoader, Dataset
 from PIL import Image
 import torchvision.transforms as transforms
 from argparse import ArgumentParser
-
+from math import sqrt
 from torchvision.transforms.transforms import Lambda
-from utils import circular_conv, circular_corr
+from utils import circular_conv, circular_corr, normalize_for_circular
 ''' 
 * Reference https://bExponential Lambda Log.openmined.org/split-neural-networks-on-pysyft/
 * Corresponding experiments: Training with different batch size
@@ -152,6 +152,7 @@ class SplitAlexNet(nn.Module):
         self.remote = []
         z = self.models[0](image)
         z = z.flatten(start_dim=1)
+        z, _, _ = normalize_for_circular(z)  # normalize
         self.front.append(z)
 
         # Encode z(batch, nof_feature) by circulation convolution
@@ -193,15 +194,24 @@ class SplitAlexNet(nn.Module):
         remote_grad_z = self.remote[0].grad.clone()
         key = self.key[:, :, :remote_grad_z.shape[0], :]  # (1,1,B, nofeature)
 
+        # mathematically, normalize before encrypt and reduce the reconstruction loss
+        norm_remote_grad_z, STD, MEAN = normalize_for_circular(
+            remote_grad_z)
         # Encode the gradient
-        compress_V = circular_conv(remote_grad_z, key)
+        compress_V = circular_conv(norm_remote_grad_z, key)
 
         # Decode the V
         grad_z = circular_corr(compress_V, key)
-        self.front[0].backward(grad_z)
+
+        # Cancel the normalization
+        de_grad_z = grad_z * \
+            (STD*sqrt(grad_z.shape[-1]))
+        de_grad_z = de_grad_z + MEAN
+
+        self.front[0].backward(de_grad_z)
 
         # Return the loss between gradient
-        return torch.mean((remote_grad_z-grad_z)**2).detach()
+        return torch.mean((remote_grad_z-de_grad_z)**2).detach()
 
     def zero_grad(self):
         for optimizer in self.optimizers:
