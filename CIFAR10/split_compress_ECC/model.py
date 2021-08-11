@@ -142,22 +142,22 @@ class SplitAlexNet(nn.Module):
         # (1, nof_feature)
         remote_grad_CompressV = self.remote[0].grad.clone()
 
-        # mathematically, normalize before encrypt and reduce the reconstruction loss
-        norm_remote_grad_CompressV, STD, MEAN = normalize_for_circular(
-            remote_grad_CompressV)
+        # # mathematically, normalize before encrypt and reduce the reconstruction loss
+        # norm_remote_grad_CompressV, STD, MEAN = normalize_for_circular(
+        #     remote_grad_CompressV)
 
-        # Encrpt the gradient
-        en_grad_CompressV = self.ecc.encrypt_Compressed_grad(
-            norm_remote_grad_CompressV)
+        # # Encrpt the gradient
+        # en_grad_CompressV = self.ecc.encrypt_Compressed_grad(
+        #     norm_remote_grad_CompressV)
 
-        # Decode the V
-        grad_CompressV = self.ecc.decrypt_Compressed_grad(en_grad_CompressV)
+        # # Decode the V
+        # grad_CompressV = self.ecc.decrypt_Compressed_grad(en_grad_CompressV)
 
-        # Cancel the normalization
-        de_grad_CompressV = grad_CompressV * \
-            (STD*sqrt(grad_CompressV.shape[-1]))
-        de_grad_CompressV = de_grad_CompressV + MEAN
-
+        # # Cancel the normalization
+        # de_grad_CompressV = grad_CompressV * \
+        #     (STD*sqrt(grad_CompressV.shape[-1]))
+        # de_grad_CompressV = de_grad_CompressV + MEAN
+        de_grad_CompressV = remote_grad_CompressV
         self.front[2].backward(de_grad_CompressV)
 
         # Return the loss between gradient
