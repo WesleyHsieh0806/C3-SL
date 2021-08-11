@@ -20,7 +20,7 @@ class ECC():
         # * Key:(Batch size, nof_feature)->(1, 1, Batch size, nof_feature)
         mean = 0
         dim = 1
-        for i in range(len(W.shape)):
+        for i in range(1, len(W.shape)):
             dim *= W.shape[i]
         std = (1/dim) ** (1/2)
         Key = (torch.randn(W.shape)*std + mean).cuda()
