@@ -9,8 +9,9 @@ from torch.utils.data import DataLoader, Dataset
 from PIL import Image
 import torchvision.transforms as transforms
 from argparse import ArgumentParser
+from math import sqrt
 
-from utils import circular_conv, circular_corr
+from utils import circular_conv, circular_corr, normalize_for_circular
 ''' 
 * Reference https://blog.openmined.org/split-neural-networks-on-pysyft/
 '''
@@ -147,6 +148,7 @@ class SplitAlexNet(nn.Module):
         self.remote = []
         z = self.models[0](image)
         z = z.flatten(start_dim=1)
+        z, _, _ = normalize_for_circular(z)  # normalize
         self.front.append(z)
 
         if self.key == None:
@@ -172,11 +174,20 @@ class SplitAlexNet(nn.Module):
         loss.backward()
         # Copy the gradient
         grad_z = self.remote[0].grad.clone()
-        key = self.key[:, :, :grad_z.shape[0], :]  # (1,1,B, nofeature)
-        encrypt_grad_z = circular_conv(grad_z, key)
+        # mathematically, normalize before encrypt and reduce the reconstruction loss
+        norm_grad_z, STD, MEAN = normalize_for_circular(
+            grad_z)
+
+        key = self.key[:, :, :norm_grad_z.shape[0], :]  # (1,1,B, nofeature)
+        encrypt_grad_z = circular_conv(norm_grad_z, key)
 
         # Decrypt the gradient
-        recover_grad_z = circular_corr(encrypt_grad_z, key)
+        norm_recover_grad_z = circular_corr(encrypt_grad_z, key)
+
+        # Cancel the normalization
+        recover_grad_z = norm_recover_grad_z * \
+            (STD*sqrt(norm_recover_grad_z.shape[-1]))
+        recover_grad_z = recover_grad_z + MEAN
 
         self.front[0].backward(recover_grad_z)
         # Return the loss between gradient

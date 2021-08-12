@@ -1,5 +1,18 @@
 import torch
 import torch.nn.functional as F
+from math import sqrt
+
+
+def normalize_for_circular(W):
+    '''
+    * W: shape(Batch, nof_feature)
+    * Normalize input tensor to N(0, 1/d)
+    '''
+    # Normalize W to N(0, 1/d)
+    std, mean = torch.std_mean(W, dim=1, keepdim=True)
+    W = W - mean
+    W = W/(sqrt(W.shape[-1])*std)
+    return W, std, mean
 
 
 def circular_pad2d(Input, pad: tuple):
