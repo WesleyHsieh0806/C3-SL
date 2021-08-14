@@ -8,6 +8,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 from PIL import Image
 import torchvision.transforms as transforms
+import argparse
 
 Dir = os.path.dirname(__file__)
 train_dir = os.path.join(Dir, '..', 'CIFAR', 'train')
@@ -26,6 +27,21 @@ print("Size of training labels:{}".format(train_labels.shape))
 print("Size of testing images:{}".format(test_image.shape))
 print("Size of testing labels:{}".format(test_labels.shape))
 
+'''
+* Argument parser
+'''
+parser = argparse.ArgumentParser()
+parser.add_argument("--epoch", required=False, type=int,
+                    default=30, help="The Epoch")
+parser.add_argument("--dump_path", required=True, type=str,
+                    default='./log',
+                    help="The saved path of logs and models(Relative)")
+args = parser.parse_args()
+
+# create directory for saved_path
+saved_path = os.path.join(Dir, args.dump_path)
+if not os.path.isdir(saved_path):
+    os.makedirs(saved_path)
 ''' 
 ********************************************
 * Data Augmentation and Dataset, DataLoader
@@ -183,35 +199,27 @@ for epoch in range(1, num_epoch+1):
         best_acc = test_acc
         best_loss = test_loss
         print("Save model with Test_acc:{:.4f} Test_loss:{:.4f} at {}".format(
-            best_acc, best_loss, os.path.join(
-                Dir, "Alexnet.pth")))
+            best_acc, best_loss, os.path.join(saved_path, "Alexnet.pth")))
         torch.save(model.state_dict(), os.path.join(
-            Dir, "Alexnet.pth"))
-if not os.path.isdir(os.path.join(
-        os.path.dirname(__file__), "log")):
-    os.makedirs(os.path.join(
-        os.path.dirname(__file__), "log"))
+            saved_path, "Alexnet.pth"))
+
 # Record the train acc and train loss
-with open(os.path.join(
-        os.path.dirname(__file__), "log", "train_accuracy.csv"), "w") as f:
+with open(os.path.join(saved_path, "train_accuracy.csv"), "w") as f:
     for i in range(len(train_acc_list)-1):
         f.write(str(train_acc_list[i])+",")
     f.write(str(train_acc_list[-1]))
-with open(os.path.join(
-        os.path.dirname(__file__), "log", "train_loss.csv"), "w") as f:
+with open(os.path.join(saved_path, "train_loss.csv"), "w") as f:
     for i in range(len(train_loss_list)-1):
         f.write(str(train_loss_list[i])+",")
     f.write(str(train_loss_list[-1]))
 
 # Record the validation accuracy and validation loss
-with open(os.path.join(
-        os.path.dirname(__file__), "log", "test_accuracy.csv"), "w") as f:
+with open(os.path.join(saved_path, "test_accuracy.csv"), "w") as f:
     for i in range(len(test_acc_list)-1):
         f.write(str(test_acc_list[i])+",")
     f.write(str(test_acc_list[-1]))
 
-with open(os.path.join(
-        os.path.dirname(__file__), "log", "test_loss.csv"), "w") as f:
+with open(os.path.join(saved_path, "test_loss.csv"), "w") as f:
     for i in range(len(test_loss_list)-1):
         f.write(str(test_loss_list[i])+",")
     f.write(str(test_loss_list[-1]))
