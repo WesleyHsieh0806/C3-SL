@@ -11,7 +11,7 @@ def normalize_for_circular(W):
     # Normalize W to N(0, 1/d)
     std, mean = torch.std_mean(W, dim=1, keepdim=True)
     W = W - mean
-    W = W/(sqrt(W.shape[-1])*std)
+    W = W/(sqrt(W.shape[-1])*std+1e-8)
     return W, std, mean
 
 
