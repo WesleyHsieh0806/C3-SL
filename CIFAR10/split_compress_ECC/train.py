@@ -48,7 +48,7 @@ parser.add_argument("--Lambda", required=False, type=float,
 parser.add_argument("--dump_path", required=False, type=str,
                     default='./logs', help="The directory to save logs and models")
 parser.add_argument("--restore", required=False, type=bool,
-                    default=False, help="Whether or not to restore model status from the pickle files in dump_path")
+                    action="store_true", help="Whether or not to restore model status from the pickle files in dump_path")
 args = parser.parse_args()
 
 # Create directory for dump path
