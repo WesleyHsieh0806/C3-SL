@@ -15,7 +15,7 @@ from argparse import ArgumentParser
 from model import SplitAlexNet
 from torchvision.transforms.transforms import Lambda
 
-''' 
+'''
 * Reference https://bExponential Lambda Log.openmined.org/split-neural-networks-on-pysyft/
 * Corresponding experiments: Training with different batch size
 '''
@@ -23,7 +23,7 @@ Dir = os.path.dirname(__file__)
 train_dir = os.path.join(Dir, '..', 'CIFAR', 'train')
 test_dir = os.path.join(Dir, '..', 'CIFAR', 'test')
 
-''' 
+'''
 * Load the data from .npy
 '''
 train_image = np.load(os.path.join(train_dir, 'train_images.npy'))
@@ -36,7 +36,7 @@ print("Size of training labels:{}".format(train_labels.shape))
 print("Size of testing images:{}".format(test_image.shape))
 print("Size of testing labels:{}".format(test_labels.shape))
 
-''' 
+'''
 * Argument Parser
 '''
 parser = ArgumentParser()
@@ -57,7 +57,7 @@ saved_path = os.path.join(
     os.path.dirname(__file__), args.dump_path)
 if not os.path.isdir(saved_path):
     os.makedirs(saved_path)
-''' 
+'''
 ********************************************
 * Data Augmentation and Dataset, DataLoader
 ********************************************
@@ -109,7 +109,7 @@ Test_Dataset = ImageDataset(test_image, test_labels, test_transform)
 Train_Loader = DataLoader(Train_Dataset, batch_size=batch_size, shuffle=True)
 Test_Loader = DataLoader(Test_Dataset, batch_size=batch_size, shuffle=False)
 
-''' 
+'''
 * Model Architecture: Alexnet
 '''
 
@@ -123,6 +123,8 @@ model = SplitAlexNet()
 model.cuda()
 model.load_state_dict(torch.load(
     os.path.join(args.restore_path, "Alexnet.pth")), strict=True)
+print(torch.load(
+    os.path.join(args.restore_path, "Alexnet.pth")))
 CE_Loss = nn.CrossEntropyLoss()
 
 # Check the architecture of Alexnet
