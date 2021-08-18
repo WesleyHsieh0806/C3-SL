@@ -47,6 +47,8 @@ parser.add_argument("--Lambda", required=False, type=float,
                     default=0.0001, help="The batch size")
 parser.add_argument("--dump_path", required=False, type=str,
                     default='./logs', help="The directory to save logs and models")
+parser.add_argument("--restore", required=False, type=bool,
+                    default=False, help="Whether or not to restore model status from the pickle files in dump_path")
 args = parser.parse_args()
 
 # Create directory for dump path
@@ -110,12 +112,20 @@ Test_Loader = DataLoader(Test_Dataset, batch_size=batch_size, shuffle=False)
 * Model Architecture: Alexnet
 '''
 
-
+start_epoch = 1
 learning_rate = 1e-4
 Lambdas = [args.Lambda*i/args.epoch for i in range(args.epoch+1)]
 num_epoch = args.epoch
 
 model = SplitAlexNet()
+
+# Restore the model status from pickle
+if args.restore:
+    last_dict = torch.load(os.path.join(
+        saved_path, "Alexnet.pth"))
+    start_epoch = last_dict["Epoch"]
+    model = last_dict["Model"]
+
 # add model into tensorborad
 model.cuda()
 CE_Loss = nn.CrossEntropyLoss()
@@ -136,7 +146,7 @@ test_acc_list = []
 test_CE_loss_list = []
 test_rec_loss_list = []
 
-for epoch in range(1, num_epoch+1):
+for epoch in range(start_epoch, num_epoch+1):
     ''' Training part'''
     Lambda = Lambdas[epoch]
     model.train()
@@ -221,7 +231,7 @@ for epoch in range(1, num_epoch+1):
             best_acc, best_loss, os.path.join(
                 saved_path, "Alexnet.pth")))
         saved_dict = {
-            "Epoch": epoch,
+            "Epoch": epoch+1,
             "Model": model
         }
         torch.save(saved_dict, os.path.join(
