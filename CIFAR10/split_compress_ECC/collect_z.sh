@@ -1,0 +1,6 @@
+DUMP_PATH='./log/Lambda_0_Batch64'
+BATCH=64
+EPOCH=70
+Lambda=1.0
+Restore_path='./log/Lambda_0_Batch64'
+python train.py --batch $BATCH --epoch $EPOCH --Lambda $Lambda --dump_path $DUMP_PATH --restore_path $Restore_path
