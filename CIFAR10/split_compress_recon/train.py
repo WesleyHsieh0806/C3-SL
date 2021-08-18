@@ -308,7 +308,11 @@ for epoch in range(1, num_epoch+1):
         print("Save model with Test_acc:{:.4f} test_CE_loss:{:.4f} at {}".format(
             best_acc, best_loss, os.path.join(
                 Dir, "Alexnet.pth")))
-        torch.save(model.state_dict(), os.path.join(
+        saved_dict = {
+            "Epoch": epoch,
+            "Model": model
+        }
+        torch.save(saved_dict, os.path.join(
             Dir, "Alexnet.pth"))
 
 if not os.path.isdir(os.path.join(
