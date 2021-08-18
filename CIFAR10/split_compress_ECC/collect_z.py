@@ -122,7 +122,7 @@ model = SplitAlexNet()
 # add model into tensorborad
 model.cuda()
 model.load_state_dict(torch.load(
-    os.path.join(args.restore_path, "Alexnet.pth")))
+    os.path.join(args.restore_path, "Alexnet.pth")), strict=True)
 CE_Loss = nn.CrossEntropyLoss()
 
 # Check the architecture of Alexnet
@@ -182,5 +182,5 @@ stored_dict = {
     "z": z,
     "recover_z": recover_z
 }
-with open(os.path.join(args.dump_path), 'wb') as f:
+with open(os.path.join(args.dump_path, "features.pkl"), 'wb') as f:
     pickle.dump(stored_dict, f)
