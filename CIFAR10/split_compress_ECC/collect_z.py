@@ -121,7 +121,8 @@ num_epoch = args.epoch
 model = SplitAlexNet()
 # add model into tensorborad
 model.cuda()
-model.load_state_dict(os.path.join(args.restore_path, "Alexnet.pth"))
+model.load_state_dict(torch.load(
+    os.path.join(args.restore_path, "Alexnet.pth")))
 CE_Loss = nn.CrossEntropyLoss()
 
 # Check the architecture of Alexnet
