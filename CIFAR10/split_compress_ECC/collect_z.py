@@ -123,14 +123,14 @@ model = SplitAlexNet()
 model.cuda()
 model.load_state_dict(torch.load(
     os.path.join(args.restore_path, "Alexnet.pth")), strict=True)
-print(torch.load(
-    os.path.join(args.restore_path, "Alexnet.pth")))
 CE_Loss = nn.CrossEntropyLoss()
 
 # Check the architecture of Alexnet
 print("{:=^40}".format("Architecture"))
 print(model.models[0])
 print(model.models[1])
+print(torch.load(
+    os.path.join(args.restore_path, "Alexnet.pth")))
 print("{:=^40}".format("End"))
 
 best_acc = 0.
