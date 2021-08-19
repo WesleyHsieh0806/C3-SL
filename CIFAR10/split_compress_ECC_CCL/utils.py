@@ -24,9 +24,11 @@ def CC_Loss(z, recover_z):
     * Goal: To ensure the feature cross-correlation is similar between z and recover_z
     '''
     # Normalize along the batch dimension
+    z = (z - z.mean(0))
     norm_z = z / torch.norm(z, dim=0, keepdim=True)  # (B, dim)
     CC_norm_z = torch.mm(norm_z.T, norm_z)
 
+    recover_z = recover_z - recover_z.mean(0)
     norm_recover_z = recover_z / \
         torch.norm(recover_z, dim=0, keepdim=True)  # (B, dim)
     CC_norm_recover_z = torch.mm(norm_recover_z.T, norm_recover_z)
