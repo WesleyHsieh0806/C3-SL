@@ -210,7 +210,7 @@ for epoch in range(start_epoch, num_epoch+1):
     test_rec_loss /= len(Test_Dataset)
     test_acc /= len(Test_Dataset)
     # Output the result
-    print("Epoch [{}/{}] Time:{:.3f} secs Train_acc:{:.4f} train_CE_loss:{:.4f} train_rce_loss:{:.4f}".format(epoch, num_epoch, time.time()-epoch_start_time,
+    print("Epoch [{}/{}] Time:{:.3f} secs Train_acc:{:.4f} train_CE_loss:{:.4f} train_CCL_loss:{:.4f}".format(epoch, num_epoch, time.time()-epoch_start_time,
                                                                                                               train_acc, train_CE_loss, train_CCL_loss))
     print("Test_acc:{:.4f} test_CE_loss:{:.4f} test_rce_loss:{:.4f}".format(
         test_acc, test_CE_loss, test_rec_loss))
