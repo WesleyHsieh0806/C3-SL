@@ -118,8 +118,9 @@ learning_rate = 1e-4
 Lambdas = [args.Lambda*i/args.epoch for i in range(args.epoch+1)]
 num_epoch = args.epoch
 
-model = SplitAlexNet()
-# add model into tensorborad
+if args.restore_path:
+    saved_dict = torch.load(os.path.join(args.restore_path, "./Alexnet.pth"))
+    model = saved_dict["Model"]
 model.cuda()
 # model.load_state_dict(torch.load(
 #     os.path.join(args.restore_path, "Alexnet.pth")), strict=True)
