@@ -48,6 +48,10 @@ print("MSE between Sample Correlation matrix:{:.5f}".format(
     np.average((SC_z-SC_recover_z)**2)))
 data.append(np.average((SC_z-SC_recover_z)**2))
 
+# MSE between two features
+print("MSE between features:{:.5f}".format(
+    np.average((z-recover_z)**2)))
+data.append(np.average((z-recover_z)**2))
 
 # output the observation into csv
 dump_path = os.path.join("./log/Lambda_0_Batch64_ep100/z_observation")
