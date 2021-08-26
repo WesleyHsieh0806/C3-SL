@@ -30,8 +30,8 @@ def CrossCorrelation(z):
 
 
 def SampleCorrelation(z):
-    z = z - z.mean(1)
-    z = z/np.linalg.norm(z, axis=1)
+    z = z - z.mean(1, keepdims=True)
+    z = z/np.linalg.norm(z, axis=1, keepdims=True)
     return z @ z.T
 
 
