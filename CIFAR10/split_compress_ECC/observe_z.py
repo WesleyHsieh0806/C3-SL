@@ -18,11 +18,11 @@ print(recover_z.shape)
 
 def CrossCorrelation(z):
     z = z - z.mean(0)
-    z = z/torch.norm(z, dim=0)
+    z = z/np.linalg.norm(z, axis=0)
     return z.T @ z
 
 
 CC_z = CrossCorrelation(z)
 CC_recover_z = CrossCorrelation(recover_z)
 print("MSR between Cross Correlation matrix:{:.5f}".format(
-    torch.mean((CC_z-CC_recover_z)**2)))
+    np.average((CC_z-CC_recover_z)**2)))
