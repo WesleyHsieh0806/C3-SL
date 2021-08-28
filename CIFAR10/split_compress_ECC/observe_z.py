@@ -11,14 +11,17 @@ file_path = os.path.join(dir_path, "features.pkl")
 with open(file_path, "rb") as f:
     stored_dict = pickle.load(f)
 z, recover_z = stored_dict["z"], stored_dict["recover_z"]
+test_z, test_recover_z = stored_dict["test_z"], stored_dict["test_recover_z"]
 print(z.shape)
 print(recover_z.shape)
+print(test_z.shape)
+print(test_recover_z.shape)
 
 '''
 * Define the data to be observed
 '''
 column = ["MSE between CrossCorrelation",
-          "MSE between inter-sample correlation", "MSE between two features"]
+          "MSE between inter-sample correlation", "MSE between two features", "MSE CC (test)", "MSE SC (test)", "MSE (test)"]
 data = []
 # check for cross-correlation
 
@@ -53,6 +56,26 @@ print("MSE between features:{:.5f}".format(
     np.average((z-recover_z)**2)))
 data.append(np.average((z-recover_z)**2))
 
+'''
+* Test features
+'''
+test_CC_z = CrossCorrelation(test_z)
+test_CC_recover_z = CrossCorrelation(test_recover_z)
+print("MSE between Cross Correlation matrix:{:.5f}".format(
+    np.average((test_CC_z-test_CC_recover_z)**2)))
+data.append(np.average((test_CC_z-test_CC_recover_z)**2))
+
+# Inter-sample correlation
+test_SC_z = SampleCorrelation(test_z)
+test_SC_recover_z = SampleCorrelation(test_recover_z)
+print("MSE between Sample Correlation matrix:{:.5f}".format(
+    np.average((test_SC_z-test_SC_recover_z)**2)))
+data.append(np.average((test_SC_z-test_SC_recover_z)**2))
+
+# MSE between two features
+print("MSE between features:{:.5f}".format(
+    np.average((test_z-test_recover_z)**2)))
+data.append(np.average((test_z-test_recover_z)**2))
 # output the observation into csv
 dump_path = os.path.join("./log/Lambda_0_Batch64_ep100/z_observation")
 if not os.path.isdir(dump_path):
