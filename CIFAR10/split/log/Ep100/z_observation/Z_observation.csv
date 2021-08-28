@@ -1,2 +1,2 @@
-,MSE between CrossCorrelation,MSE between inter-sample correlation,MSE between two features
-0,0.0021117422729730606,0.004826514516025782,0.00010983803076669574
+,MSE between CrossCorrelation,MSE between inter-sample correlation,MSE between two features,MSE CC (test),MSE SC (test),MSE (test)
+0,0.0021128470543771982,0.004829608369618654,0.0001099456349038519,0.002108921529725194,0.004759653937071562,0.00010991767339874059
