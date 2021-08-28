@@ -13,7 +13,7 @@ import torchvision.transforms as transforms
 from argparse import ArgumentParser
 
 from torchvision.transforms.transforms import Lambda
-
+from models import SplitAlexNet
 '''
 * Reference https://bExponential Lambda Log.openmined.org/split-neural-networks-on-pysyft/
 * Corresponding experiments: Training with different batch size
