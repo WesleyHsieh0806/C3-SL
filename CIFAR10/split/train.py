@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 from argparse import ArgumentParser
 from math import sqrt
 
-from models import SplitAlexNet
+from model import SplitAlexNet
 from utils import circular_conv, circular_corr, normalize_for_circular
 ''' 
 * Reference https://blog.openmined.org/split-neural-networks-on-pysyft/

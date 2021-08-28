@@ -13,7 +13,7 @@ import torchvision.transforms as transforms
 from argparse import ArgumentParser
 
 from torchvision.transforms.transforms import Lambda
-from models import SplitAlexNet
+from model import SplitAlexNet
 '''
 * Reference https://bExponential Lambda Log.openmined.org/split-neural-networks-on-pysyft/
 * Corresponding experiments: Training with different batch size
@@ -145,6 +145,8 @@ for epoch in range(1):
 
     z = []
     recover_z = []
+    test_z = []
+    test_recover_z = []
     with torch.no_grad():
         for i, (train_x, train_y) in enumerate(Train_Loader, 1):
             print("Batch [{}/{}]".format(i, len(Train_Loader)), end='\r')
@@ -174,6 +176,10 @@ for epoch in range(1):
             # Compute the loss and acc
             test_acc += np.sum(np.argmax(y_pred.detach().cpu().numpy(),
                                          axis=1) == test_y.cpu().numpy())
+            test_z.append(model.front[0].detach().cpu().numpy())
+            test_recover_z.append(model.front[1].detach().cpu().numpy())
+    test_z = np.concatenate(test_z)
+    test_recover_z = np.concatenate(test_recover_z)
     test_acc /= len(Test_Dataset)
     # Output the result
     print("Epoch [{}/{}] Time:{:.3f} secs".format(epoch,
@@ -182,7 +188,9 @@ for epoch in range(1):
         test_acc))
 stored_dict = {
     "z": z,
-    "recover_z": recover_z
+    "recover_z": recover_z,
+    "test_z": test_z,
+    "test_recover_z": test_recover_z
 }
 with open(os.path.join(args.dump_path, "features.pkl"), 'wb') as f:
     pickle.dump(stored_dict, f)
