@@ -119,6 +119,7 @@ num_epoch = args.epoch
 
 if args.restore_path:
     saved_dict = torch.load(os.path.join(args.restore_path, "./Alexnet.pth"))
+    print(saved_dict.keys())
     model = saved_dict["Model"]
 model.cuda()
 # model.load_state_dict(torch.load(
