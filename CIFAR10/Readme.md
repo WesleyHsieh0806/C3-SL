@@ -5,7 +5,7 @@
 * torchvision
 * CUDA 10.2
 * tensorflow_datasets
-* Other dependencies: numpy, matplotlib
+* Other dependencies: numpy, matplotlib, tensorflow
 
 ## Dataset Preparation
 
