@@ -27,7 +27,7 @@ def BT_Loss(z, beta):
     on_diag = torch.diagonal(CC_norm_z).add_(-1).pow_(2).sum()
     off_diag = off_diagonal(CC_norm_z).pow_(
         2).sum()  # loss from off-diagonal terms
-    loss = on_diag + beta * off_diag
+    loss = (on_diag + beta * off_diag)/(CC_norm_z.shape[1]**2)
     return loss
 
 
