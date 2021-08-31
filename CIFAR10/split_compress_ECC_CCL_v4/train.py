@@ -147,7 +147,6 @@ best_acc = 0.
 best_loss = float("inf")
 train_acc_list = []
 train_CE_loss_list = []
-train_BT_loss_list = []
 train_BT2_loss_list = []
 train_grad_rec_loss_list = []
 test_acc_list = []
@@ -159,7 +158,6 @@ for epoch in range(start_epoch, num_epoch+1):
     Lambda = Lambdas[epoch]
     model.train()
     train_CE_loss = 0.
-    train_BT_loss = 0.
     train_BT2_loss = 0.
     train_grad_rec_loss = 0.
     train_acc = 0.
@@ -177,9 +175,6 @@ for epoch in range(start_epoch, num_epoch+1):
 
         # Compute the loss
         batch_L_CE = CE_Loss(y_pred, train_y)
-        # batch_L_BT = BT_Loss(
-        #     model.front[0], args.beta)
-        batch_L_BT = 0.
         batch_L_BT2 = BT_2matrix_Loss(
             model.front[0], model.front[1], args.beta2)
 
@@ -188,19 +183,17 @@ for epoch in range(start_epoch, num_epoch+1):
 
         # Compute the gradient
         batch_L_grad_rec = model.backward(
-            batch_L_CE, batch_L_BT, batch_L_BT2, Lambda, args.Lambda2)
+            batch_L_CE, 0., batch_L_BT2, Lambda, args.Lambda2)
 
         # Update the model
         model.step()
 
         train_CE_loss += len(train_x) * (batch_L_CE).item()
-        train_BT_loss += len(train_x) * (batch_L_BT).item()
         train_BT2_loss += len(train_x) * (batch_L_BT2).item()
         train_grad_rec_loss += len(train_x) * batch_L_grad_rec.item()
         train_acc += np.sum(np.argmax(y_pred.detach().cpu().numpy(),
                                       axis=1) == train_y.cpu().numpy())
     train_CE_loss /= Train_Dataset.__len__()
-    train_BT_loss /= Train_Dataset.__len__()
     train_BT2_loss /= Train_Dataset.__len__()
     train_grad_rec_loss /= Train_Dataset.__len__()
     train_acc /= Train_Dataset.__len__()
@@ -224,15 +217,14 @@ for epoch in range(start_epoch, num_epoch+1):
     test_rec_loss /= len(Test_Dataset)
     test_acc /= len(Test_Dataset)
     # Output the result
-    print("Epoch [{}/{}] Time:{:.3f} secs Train_acc:{:.4f} train_CE_loss:{:.4f} train_BT_loss:{:.4f} train_BT2_loss:{:.4f}".format(epoch, num_epoch, time.time()-epoch_start_time,
-                                                                                                                                   train_acc, train_CE_loss, train_BT_loss, train_BT2_loss))
+    print("Epoch [{}/{}] Time:{:.3f} secs Train_acc:{:.4f} train_CE_loss:{:.4f} train_BT2_loss:{:.4f}".format(epoch, num_epoch, time.time()-epoch_start_time,
+                                                                                                              train_acc, train_CE_loss, train_BT2_loss))
     print("Test_acc:{:.4f} test_CE_loss:{:.4f} test_rce_loss:{:.4f}".format(
         test_acc, test_CE_loss, test_rec_loss))
 
     # Append the accuracy and loss to list
     train_acc_list.append(train_acc)
     train_CE_loss_list.append(train_CE_loss)
-    train_BT_loss_list.append(train_BT_loss)
     train_BT2_loss_list.append(train_BT2_loss)
     train_grad_rec_loss_list.append(train_grad_rec_loss)
     test_acc_list.append(test_acc)
@@ -264,10 +256,6 @@ with open(os.path.join(saved_path, "train_CE_loss.csv"), "w") as f:
         f.write(str(train_CE_loss_list[i])+",")
     f.write(str(train_CE_loss_list[-1]))
 
-with open(os.path.join(saved_path, "train_BT_loss.csv"), "w") as f:
-    for i in range(len(train_BT_loss_list)-1):
-        f.write(str(train_BT_loss_list[i])+",")
-    f.write(str(train_BT_loss_list[-1]))
 with open(os.path.join(saved_path, "train_BT2_loss.csv"), "w") as f:
     for i in range(len(train_BT_loss_list)-1):
         f.write(str(train_BT_loss_list[i])+",")
