@@ -8,10 +8,10 @@ beta=0.005
 beta2=0.0
 
 # Execute the training script
-python train.py --batch $BATCH \ 
+python train.py --batch $BATCH \
 --epoch $EPOCH \
 --Lambda $Lambda \
 --Lambda2 $Lambda2 \
---dump_path $DUMP_PATH \ 
+--dump_path $DUMP_PATH \
 --beta $beta \
 --beta2 $beta2
