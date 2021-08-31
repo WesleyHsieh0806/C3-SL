@@ -177,8 +177,9 @@ for epoch in range(start_epoch, num_epoch+1):
 
         # Compute the loss
         batch_L_CE = CE_Loss(y_pred, train_y)
-        batch_L_BT = BT_Loss(
-            model.front[0], args.beta)
+        # batch_L_BT = BT_Loss(
+        #     model.front[0], args.beta)
+        batch_L_BT = 0.
         batch_L_BT2 = BT_2matrix_Loss(
             model.front[0], model.front[1], args.beta2)
 

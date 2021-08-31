@@ -1,11 +1,11 @@
 # arguments
-DUMP_PATH='./log/L100_B0.005/L50_B0.005/Batch64_Ep100'
+DUMP_PATH='./log/L100_B0.005/Batch64_Ep100'
 BATCH=64
 EPOCH=100
 Lambda=100.0
-Lambda2=0.0
+Lambda2=100.0
 beta=0.005
-beta2=0.0
+beta2=0.005
 
 # Execute the training script
 python train.py --batch $BATCH \
