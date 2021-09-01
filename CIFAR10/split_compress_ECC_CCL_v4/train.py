@@ -257,9 +257,9 @@ with open(os.path.join(saved_path, "train_CE_loss.csv"), "w") as f:
     f.write(str(train_CE_loss_list[-1]))
 
 with open(os.path.join(saved_path, "train_BT2_loss.csv"), "w") as f:
-    for i in range(len(train_BT_loss_list)-1):
-        f.write(str(train_BT_loss_list[i])+",")
-    f.write(str(train_BT_loss_list[-1]))
+    for i in range(len(train_BT2_loss_list)-1):
+        f.write(str(train_BT2_loss_list[i])+",")
+    f.write(str(train_BT2_loss_list[-1]))
 with open(os.path.join(saved_path, "train_grad_rec_loss.csv"), "w") as f:
     for i in range(len(train_grad_rec_loss_list)-1):
         f.write(str(train_grad_rec_loss_list[i])+",")
