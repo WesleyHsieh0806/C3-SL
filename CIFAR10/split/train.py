@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 from argparse import ArgumentParser
 from math import sqrt
 
-from model import SplitAlexNet
+from model import SplitAlexNet, SplitResNet50
 from utils import circular_conv, circular_corr, normalize_for_circular
 ''' 
 * Reference https://blog.openmined.org/split-neural-networks-on-pysyft/
@@ -60,6 +60,9 @@ parser.add_argument("--epoch", required=False, type=int,
 parser.add_argument("--dump_path", required=True, type=str,
                     default='./log',
                     help="The saved path of logs and models(Relative)")
+parser.add_argument("--arch", required=True, type=str,
+                    default='alexnet',
+                    help="The Architecture to be trained:[alexnet/resnet50]")
 args = parser.parse_args()
 
 # create directory for saved_path
@@ -109,8 +112,10 @@ Test_Loader = DataLoader(Test_Dataset, batch_size=batch_size, shuffle=False)
 
 learning_rate = 1e-4
 num_epoch = args.epoch
-
-model = SplitAlexNet()
+if args.arch == "alexnet":
+    model = SplitAlexNet()
+elif args.arch == "resnet50":
+    model = SplitResNet50()
 model.cuda()
 loss = nn.CrossEntropyLoss()
 # optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
