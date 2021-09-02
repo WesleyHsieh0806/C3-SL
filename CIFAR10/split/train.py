@@ -217,13 +217,13 @@ for epoch in range(1, num_epoch+1):
         best_loss = test_loss
         print("Save model with Test_acc:{:.4f} Test_loss:{:.4f} at {}".format(
             best_acc, best_loss, os.path.join(
-                saved_path, "Alexnet.pth")))
+                saved_path, "model.pth")))
         saved_dict = {
             "Epoch": epoch,
             "Model": model
         }
         torch.save(saved_dict, os.path.join(
-            saved_path, "Alexnet.pth"))
+            saved_path, "model.pth"))
 
 # Record the train acc and train loss
 with open(os.path.join(

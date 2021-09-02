@@ -11,7 +11,7 @@ from PIL import Image
 import torchvision.transforms as transforms
 from argparse import ArgumentParser
 
-from model import SplitAlexNet
+from model import SplitAlexNet, SplitResNet50
 from torchvision.transforms.transforms import Lambda
 
 ''' 
@@ -49,6 +49,9 @@ parser.add_argument("--dump_path", required=False, type=str,
                     default='./logs', help="The directory to save logs and models")
 parser.add_argument("--restore", required=False,
                     action="store_true", help="Whether or not to restore model status from the pickle files in dump_path")
+parser.add_argument("--arch", required=True, type=str,
+                    default='alexnet',
+                    help="The Architecture to be trained:[alexnet/resnet50]")
 args = parser.parse_args()
 
 # Create directory for dump path
@@ -114,15 +117,18 @@ Test_Loader = DataLoader(Test_Dataset, batch_size=batch_size, shuffle=False)
 
 start_epoch = 1
 learning_rate = 1e-4
-Lambdas = [args.Lambda*i/args.epoch for i in range(args.epoch+1)]
+Lambdas = [args.Lambda for i in range(args.epoch+1)]
 num_epoch = args.epoch
 
-model = SplitAlexNet()
+if args.arch == "alexnet":
+    model = SplitAlexNet()
+elif args.arch == "resnet50":
+    model = SplitResNet50()
 
 # Restore the model status from pickle
 if args.restore:
     last_dict = torch.load(os.path.join(
-        saved_path, "Alexnet.pth"))
+        saved_path, "model.pth"))
     start_epoch = last_dict["Epoch"]
     model = last_dict["Model"]
 
@@ -229,13 +235,13 @@ for epoch in range(start_epoch, num_epoch+1):
         best_loss = test_CE_loss
         print("Save model with Test_acc:{:.4f} test_CE_loss:{:.4f} at {}".format(
             best_acc, best_loss, os.path.join(
-                saved_path, "Alexnet.pth")))
+                saved_path, "model.pth")))
         saved_dict = {
             "Epoch": epoch+1,
             "Model": model
         }
         torch.save(saved_dict, os.path.join(
-            saved_path, "Alexnet.pth"))
+            saved_path, "model.pth"))
 
 
 # Record the train acc and train loss

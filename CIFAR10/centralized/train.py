@@ -36,6 +36,9 @@ parser.add_argument("--epoch", required=False, type=int,
 parser.add_argument("--dump_path", required=True, type=str,
                     default='./log',
                     help="The saved path of logs and models(Relative)")
+parser.add_argument("--arch", required=True, type=str,
+                    default='alexnet',
+                    help="The Architecture to be trained:[alexnet/resnet50]")
 args = parser.parse_args()
 
 # create directory for saved_path
@@ -114,10 +117,27 @@ class AlexNet(nn.Module):
         return self.model(x)
 
 
+class ResNet50(nn.Module):
+    def __init__(self, num_class=10):
+        super(ResNet50, self).__init__()
+
+        # We have to change the last FC layer to output num_class scores
+        self.model = torchvision.models.resnet50(pretrained=True)
+        # Modify the last layer
+        self.model.fc = nn.Linear(2048, num_class)
+
+    def forward(self, x):
+        return self.model(x)
+
+
 learning_rate = 1e-4
 num_epoch = 50
 
-model = AlexNet().cuda()
+if args.arch == "alexnet":
+    model = AlexNet()
+elif args.arch == "resnet50":
+    model = ResNet50()
+model = model.cuda()
 loss = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
