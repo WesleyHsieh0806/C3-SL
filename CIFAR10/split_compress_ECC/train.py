@@ -66,14 +66,16 @@ if not os.path.isdir(saved_path):
 '''
 train_transform = transforms.Compose([
     transforms.ToPILImage(),
-    # transforms.Resize([128, 128]),
+    transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
 
 test_transform = transforms.Compose([
     transforms.ToPILImage(),
     # transforms.Resize([128, 128]),
     transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
 
 
