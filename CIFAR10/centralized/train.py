@@ -39,6 +39,8 @@ parser.add_argument("--dump_path", required=True, type=str,
 parser.add_argument("--arch", required=True, type=str,
                     default='alexnet',
                     help="The Architecture to be trained:[alexnet/resnet50]")
+parser.add_argument("--batch", required=True, type=int,
+                    help="Batch Size")
 args = parser.parse_args()
 
 # create directory for saved_path
@@ -92,7 +94,7 @@ class ImageDataset(Dataset):
         return X, Y
 
 
-batch_size = 32
+batch_size = args.batch
 
 Train_Dataset = ImageDataset(train_image, train_labels, train_transform)
 Test_Dataset = ImageDataset(test_image, test_labels, test_transform)
@@ -133,7 +135,7 @@ class ResNet50(nn.Module):
 
 
 learning_rate = 1e-4
-num_epoch = 50
+num_epoch = args.epoch
 
 if args.arch == "alexnet":
     model = AlexNet()

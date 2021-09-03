@@ -3,16 +3,6 @@ import torch.nn.functional as F
 from math import sqrt
 
 
-def MSE_ReLu_Loss(z, recover_z):
-    '''
-    * Input: z and recover_z (N, nof_feature)
-    * Since z will be sent to relu in the next layer, now we will just compute the MSE between relu(z)
-    '''
-    z = F.relu(z)
-    recover_z = F.relu(recover_z)
-    return torch.mean((z-recover_z)**2)
-
-
 def normalize_for_circular(W):
     '''
     * W: shape(Batch, nof_feature)
@@ -23,27 +13,6 @@ def normalize_for_circular(W):
     W = W - mean
     W = W/(sqrt(W.shape[-1])*std)
     return W, std, mean
-
-
-def CC_Loss(z, recover_z):
-    '''
-    * Feature Cross-Correlation Loss
-    * Input:
-    *   @ z:         tensor of shape(B, feature dim)
-    *   @ recover_z: tensor of shape(B, feature dim)
-    * Goal: To ensure the feature cross-correlation is similar between z and recover_z
-    '''
-    # Normalize along the batch dimension
-    z = (z - z.mean(0))
-    norm_z = z / torch.norm(z, dim=0, keepdim=True)  # (B, dim)
-    CC_norm_z = torch.mm(norm_z.T, norm_z)
-
-    recover_z = recover_z - recover_z.mean(0)
-    norm_recover_z = recover_z / \
-        torch.norm(recover_z, dim=0, keepdim=True)  # (B, dim)
-    CC_norm_recover_z = torch.mm(norm_recover_z.T, norm_recover_z)
-
-    return torch.mean((CC_norm_z-CC_norm_recover_z)**2)
 
 
 def circular_pad2d(Input, pad: tuple):
