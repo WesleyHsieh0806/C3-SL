@@ -1,4 +1,4 @@
-DUMP_PATH='./log/Lambda_0_Batch64_ep100'
+DUMP_PATH='./Resnet50_log/Lambda_0_Batch64_ep100'
 BATCH=64
 EPOCH=100
 Lambda=0.0
