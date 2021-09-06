@@ -119,7 +119,7 @@ Test_Loader = DataLoader(Test_Dataset, batch_size=batch_size, shuffle=False)
 
 start_epoch = 1
 learning_rate = 1e-4
-Lambdas = [args.Lambda for i in range(args.epoch+1)]
+Lambdas = [args.Lambda * (0.95 ** i) for i in range(args.epoch+1)]
 num_epoch = args.epoch
 
 if args.arch == "alexnet":
