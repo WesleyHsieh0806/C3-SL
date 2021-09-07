@@ -1,5 +1,5 @@
-DUMP_PATH='./Resnet50_log/L0.1_B5.0_Batch64_Ep100'
-BATCH=64
+DUMP_PATH='./Resnet50_log/Scheduler/L0.1_B5.0_Batch128_Ep100_2'
+BATCH=128
 EPOCH=100
 Lambda=0.1
 beta=5.0
