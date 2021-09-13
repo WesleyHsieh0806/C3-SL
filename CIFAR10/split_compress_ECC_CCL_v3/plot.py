@@ -11,15 +11,15 @@ CCL_path = os.path.join(os.path.dirname(__file__),
 with open(os.path.join(CCL_path, "test_accuracy.csv"), 'r') as f:
     test_acc_CCL = list(map(float, f.readline().split(',')))[:]
 CCL_path = os.path.join(os.path.dirname(__file__),
-                        "Resnet50_log", "Scheduler", "L0.1_B5.0_Batch64_Ep100")
+                        "Resnet50_log", "Scheduler", "L0.1_B5.0_Batch256_Ep200")
 
 with open(os.path.join(CCL_path, "test_accuracy.csv"), 'r') as f:
     test_acc_CCL_Scheduler = list(map(float, f.readline().split(',')))[:]
 
 
 ECC_path = os.path.join(os.path.dirname(__file__), "..",
-                        "split_compress_ECC", "Resnet50_log", "Lambda_0_Batch64_ep100")
-with open(os.path.join(ECC_path, "test_accuracy_64_0.0.csv"), 'r') as f:
+                        "split_compress_ECC", "Resnet50_log", "Scheduler", "Lambda_0_Batch256_ep100")
+with open(os.path.join(ECC_path, "test_accuracy_256_0.0.csv"), 'r') as f:
     test_acc_ECC = list(map(float, f.readline().split(',')))[:]
 
 rec_path = os.path.join(os.path.dirname(__file__), "..",

@@ -177,7 +177,7 @@ class SplitAlexNet(nn.Module):
 
 
 class SplitResNet50(nn.Module):
-    def __init__(self, num_class=10, learning_rate=1e-4):
+    def __init__(self, num_class=10, learning_rate=1e-4, split="linear"):
         super(SplitResNet50, self).__init__()
         # We have to change the last FC layer to output num_class scores
         model = torchvision.models.resnet50(pretrained=True)
@@ -187,16 +187,23 @@ class SplitResNet50(nn.Module):
 
         model.fc = nn.Linear(2048, num_class)
         layer_list = list(model.children())
+
+        # Split point
+        spl_pnt = {
+            "early": 4,
+            "middle": 5,
+            "linear": 8
+        }
         # Convblocks
         self.models.append(
             nn.Sequential(
-                *layer_list[:8]
+                *layer_list[:spl_pnt[split]]
             )
         )
         # FC
         self.models.append(
             nn.Sequential(
-                layer_list[8],
+                *layer_list[spl_pnt[split]:9],
                 nn.Flatten(start_dim=1),
                 layer_list[9],
             )
@@ -257,32 +264,13 @@ class SplitResNet50(nn.Module):
         L = L_CE + Lambda * L_rec
         L.backward(retain_graph=True)
 
-        ''' 
-        * image <-compress_V.grad <-|<- K o (K* remote_compress_V.grad) <- K * remote_compress_V.grad |<- remote_compress_V.grad <-output
-        '''
         # Copy the gradient
         # (1, nof_feature)
         remote_grad_CompressV = self.remote[0].grad.clone()
 
-        # mathematically, normalize before encrypt and reduce the reconstruction loss
-        norm_remote_grad_CompressV, STD, MEAN = normalize_for_circular(
-            remote_grad_CompressV)
-
-        # Encrpt the gradient
-        en_grad_CompressV = self.ecc.encrypt_Compressed_grad(
-            norm_remote_grad_CompressV)
-
-        # Decode the V
-        grad_CompressV = self.ecc.decrypt_Compressed_grad(en_grad_CompressV)
-
-        # Cancel the normalization
-        de_grad_CompressV = grad_CompressV * \
-            (STD*sqrt(grad_CompressV.shape[-1]))
-        de_grad_CompressV = de_grad_CompressV + MEAN
-        self.front[2].backward(de_grad_CompressV)
-
-        # Return the loss between gradient
-        return torch.mean((de_grad_CompressV-remote_grad_CompressV)**2).detach()
+        # Send to the edge
+        grad_CompressV = remote_grad_CompressV
+        self.front[2].backward(grad_CompressV)
 
     def zero_grad(self):
         for optimizer in self.optimizers:
