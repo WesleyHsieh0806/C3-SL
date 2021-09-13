@@ -30,8 +30,7 @@ class compression_module(nn.Module):
         self.channel = channel
         self.spatial = spatial
 
-    def forward(self, x):
-
+    def encode(self, x):
         H = x.size()[2]
 
         C = x.size()[1]
@@ -43,7 +42,27 @@ class compression_module(nn.Module):
 
         elif self.spatial == 1:
             x = torch.sigmoid(self.batchnorm1(self.conv3(x)))
+        return x
 
+    def decode(self, x):
+        if self.spatial == 0:
+            x = F.relu(self.batchnorm2(self.conv2(x)))
+        else:
+            x = F.relu(self.batchnorm2(self.conv4(x)))
+        return x
+
+    def forward(self, x):
+        H = x.size()[2]
+
+        C = x.size()[1]
+
+        B = x.size()[0]
+
+        if self.spatial == 0:
+            x = torch.sigmoid(self.batchnorm1(self.conv1(x)))
+
+        elif self.spatial == 1:
+            x = torch.sigmoid(self.batchnorm1(self.conv3(x)))
         if self.spatial == 0:
             x = F.relu(self.batchnorm2(self.conv2(x)))
         else:
@@ -51,92 +70,16 @@ class compression_module(nn.Module):
         return x
 
 
-class SplitAlexNet(nn.Module):
-    def __init__(self, num_class=10, learning_rate=1e-4):
-        super(SplitAlexNet, self).__init__()
-        # We have to change the last FC layer to output num_class scores
-        model = torchvision.models.alexnet(pretrained=True)
-
-        # Split the AlexeNet into two parts: Conv + FC
-        self.models = []  # [ConvBlocks, FC]
-
-        # Convblocks
-        model.features[0] = nn.Conv2d(
-            3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.models.append(nn.Sequential(*list(model.children())[:-1]))
-
-        # FC
-        self.models.append(list(model.children())[-1])
-        self.models[1][6] = nn.Linear(4096, num_class)
-
-        # Two optimizers for each half
-        self.optimizers = [torch.optim.Adam(
-            model.parameters(), lr=learning_rate) for model in self.models]
-        self.key = None
-
-    def train(self):
-        for model in self.models:
-            model.train()
-
-    def eval(self):
-        for model in self.models:
-            model.eval()
-
-    def forward(self, image):
-        '''
-        * Notice that we have to store the output of the
-        * front-end model so that we can compute gradient later
-        * front = [z] remote = [z.detach().requires_grad()]
-        * image->z | Split | z->output
-        '''
-        self.front = []
-        self.remote = []
-        z = self.models[0](image)
-
-        # Encode
-        encrypt_z = z
-        self.front.append(encrypt_z)
-
-        '''
-        # Cloud
-        '''
-        # use requires_grad() Since the result of detach never requires grad
-        # detach() returns a new tensor but shares the old memory
-        # the gradient of tensor z.detach() != the gradient of z
-        self.remote.append(encrypt_z.detach().requires_grad_())
-
-        # Decode
-        decrypt_z = self.remote[0]
-        self.front.append(decrypt_z)
-
-        return self.models[1](decrypt_z.flatten(start_dim=1))
-
-    def backward(self, loss):
-        ''' When we call loss.backward(), it only backwards for the last half layers
-        * So here we will manually compute the gradient for the front-half convblocks
-        '''
-        loss.backward()
-        # Copy the gradient
-        grad_z = self.remote[0].grad.clone()
-
-        self.front[0].backward(grad_z)
-
-    def zero_grad(self):
-        for optimizer in self.optimizers:
-            optimizer.zero_grad()
-
-    def step(self):
-        ''' Update parameters for both half models'''
-        for opt in self.optimizers:
-            opt.step()
-
-    def cuda(self):
-        for model in self.models:
-            model.cuda()
-
-
 class SplitResNet50(nn.Module):
-    def __init__(self, num_class=10, learning_rate=1e-4):
+    def __init__(self, num_class=10, learning_rate=1e-4, split="linear", compress_ratio=64):
+        '''
+        * split: The split point
+        * compress_ratio: Total compression ratio
+        '''
+        assert compress_ratio >= 4
+        assert (compress_ratio % 4) == 0
+        assert split in ["linear", "early", "middle"]
+
         super(SplitResNet50, self).__init__()
         # We have to change the last FC layer to output num_class scores
         model = torchvision.models.resnet50(pretrained=True)
@@ -146,21 +89,45 @@ class SplitResNet50(nn.Module):
 
         model.fc = nn.Linear(2048, num_class)
         layer_list = list(model.children())
+        # Split point
+        spl_pnt = {
+            "early": 4,
+            "middle": 5,
+            "linear": 8
+        }
+        # Variables for compression module
+        if split == "early":
+            spatial = 1
+            input_channel = 64
+            out_channel = input_channel // (compress_ratio // 4)
+        elif split == "middle":
+            spatial = 1
+            input_channel = 256
+            out_channel = input_channel // (compress_ratio // 4)
+        elif split == "linear":
+            # No spatial compression
+            spatial = 0
+            input_channel = 2048
+            out_channel = input_channel // (compress_ratio)
+
         # Convblocks
         self.models.append(
             nn.Sequential(
-                *layer_list[:4]
+                *layer_list[:spl_pnt[split]]
             )
         )
         # FC
         self.models.append(
             nn.Sequential(
-                *layer_list[4:8],
-                layer_list[8],
+                *layer_list[spl_pnt[split]:9],
                 nn.Flatten(start_dim=1),
                 layer_list[9],
             )
         )
+
+        # Compression module
+        self.models.append(compression_module(
+            input_channel=input_channel, hidden_channel=out_channel, spatial=spatial))
 
         # Two optimizers for each half
         self.optimizers = [torch.optim.Adam(
@@ -185,22 +152,22 @@ class SplitResNet50(nn.Module):
         self.front = []
         self.remote = []
         z = self.models[0](image)
-        shape = z.shape
 
         # Encode
-        encrypt_z = z
-        self.front.append(encrypt_z)
+        encode_z = self.models[2].encode(z)
+        self.front.append(encode_z)
+        self.front.append(z)
         '''
         * Cloud
         '''
         # use requires_grad() Since the result of detach never requires grad
         # detach() returns a new tensor but shares the old memory
         # the gradient of tensor z.detach() != the gradient of z
-        self.remote.append(encrypt_z.detach().requires_grad_())
+        self.remote.append(encode_z.detach().requires_grad_())
 
         # Decode
-        decrypt_z = self.remote[0]
-        self.front.append(decrypt_z)
+        decrypt_z = self.models[2].decode(self.remote[0])
+        self.remote.append(decrypt_z)
 
         return self.models[1](decrypt_z)
 
@@ -229,11 +196,9 @@ class SplitResNet50(nn.Module):
 
 
 if __name__ == "__main__":
-    model = compression_module(
-        input_channel=256, hidden_channel=16, spatial=1)
-    print(summary(model, (256, 8, 8)))
-    input = torch.zeros([1, 256, 8, 8])
-    flop, param = profile(model, inputs=(input, ))
-    # Notice that the flop here does not sum up the addition part after multiplication, so the result should be multiplied by 2
-    print(flop)
-    print(param)
+    model = SplitResNet50(split="linear", compress_ratio=64)
+    model.train()
+    print(summary(model.models[0], (3, 32, 32)))
+    print(model.models[2])
+    input = torch.randn([2, 3, 32, 32])
+    y = model(input)

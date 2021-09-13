@@ -11,8 +11,7 @@ import torchvision.transforms as transforms
 from argparse import ArgumentParser
 from math import sqrt
 
-from model import SplitAlexNet, SplitResNet50
-from utils import circular_conv, circular_corr, normalize_for_circular
+from model import SplitResNet50
 ''' 
 * Reference https://blog.openmined.org/split-neural-networks-on-pysyft/
 '''
@@ -63,8 +62,14 @@ parser.add_argument("--dump_path", required=True, type=str,
                     default='./log',
                     help="The saved path of logs and models(Relative)")
 parser.add_argument("--arch", required=True, type=str,
-                    default='alexnet',
-                    help="The Architecture to be trained:[alexnet/resnet50]")
+                    default='resnet50',
+                    help="The Architecture to be trained:[resnet50]")
+parser.add_argument("--split", required=True, type=str,
+                    default='linear',
+                    help="The Split point of Resnet50")
+parser.add_argument("--compression_ratio", required=True, type=int,
+                    default=64,
+                    help="The compression ratio of Compression module")
 args = parser.parse_args()
 
 # create directory for saved_path
@@ -108,24 +113,24 @@ Train_Loader = DataLoader(Train_Dataset, batch_size=batch_size, shuffle=True)
 Test_Loader = DataLoader(Test_Dataset, batch_size=batch_size, shuffle=False)
 
 ''' 
-* Model Architecture: Alexnet
+* Model Architecture: resnet50
 '''
 
 
 learning_rate = 1e-4
 num_epoch = args.epoch
-if args.arch == "alexnet":
-    model = SplitAlexNet()
-elif args.arch == "resnet50":
-    model = SplitResNet50()
+if args.arch == "resnet50":
+    model = SplitResNet50(
+        split=args.split, compress_ratio=args.compression_ratio)
 model.cuda()
 loss = nn.CrossEntropyLoss()
 # optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-# Check the architecture of Alexnet
+# Check the architecture
 print("{:=^40}".format("Architecture"))
 print(model.models[0])
 print(model.models[1])
+print(model.models[2])
 print("{:=^40}".format("End"))
 
 best_acc = 0.
@@ -157,7 +162,7 @@ for epoch in range(1, num_epoch+1):
 
         # Compute the loss
         batch_loss = loss(y_pred, train_y)
-        batch_L_rec = torch.mean((model.front[1]-model.front[0])**2)
+        batch_L_rec = torch.mean((model.remote[1]-model.front[1])**2)
 
         # Clean the gradient
         model.zero_grad()
@@ -187,7 +192,7 @@ for epoch in range(1, num_epoch+1):
             # Compute the loss and acc
             test_loss += loss(y_pred, test_y).item() * len(test_x)
             test_rec_loss += torch.mean(
-                (model.front[1]-model.front[0])**2).item() * len(test_x)
+                (model.remote[1]-model.front[1])**2).item() * len(test_x)
             test_acc += np.sum(np.argmax(y_pred.detach().cpu().numpy(),
                                          axis=1) == test_y.cpu().numpy())
     test_loss /= len(Test_Dataset)
