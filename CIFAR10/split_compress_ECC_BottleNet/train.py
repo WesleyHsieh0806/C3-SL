@@ -14,7 +14,7 @@ from argparse import ArgumentParser
 from model import SplitResNet50
 from torchvision.transforms.transforms import Lambda
 
-''' 
+'''
 * Reference https://bExponential Lambda Log.openmined.org/split-neural-networks-on-pysyft/
 * Corresponding experiments: Training with different batch size
 '''
@@ -22,7 +22,7 @@ Dir = os.path.dirname(__file__)
 train_dir = os.path.join(Dir, '..', 'CIFAR', 'train')
 test_dir = os.path.join(Dir, '..', 'CIFAR', 'test')
 
-''' 
+'''
 * Load the data from .npy
 '''
 train_image = np.load(os.path.join(train_dir, 'train_images.npy'))
@@ -35,7 +35,7 @@ print("Size of training labels:{}".format(train_labels.shape))
 print("Size of testing images:{}".format(test_image.shape))
 print("Size of testing labels:{}".format(test_labels.shape))
 
-''' 
+'''
 * Argument Parser
 '''
 parser = ArgumentParser()
@@ -66,7 +66,7 @@ saved_path = os.path.join(
     os.path.dirname(__file__), args.dump_path)
 if not os.path.isdir(saved_path):
     os.makedirs(saved_path)
-''' 
+'''
 ********************************************
 * Data Augmentation and Dataset, DataLoader
 ********************************************
@@ -120,7 +120,7 @@ Test_Dataset = ImageDataset(test_image, test_labels, test_transform)
 Train_Loader = DataLoader(Train_Dataset, batch_size=batch_size, shuffle=True)
 Test_Loader = DataLoader(Test_Dataset, batch_size=batch_size, shuffle=False)
 
-''' 
+'''
 * Model Architecture: Alexnet
 '''
 
@@ -154,10 +154,8 @@ best_acc = 0.
 best_loss = float("inf")
 train_acc_list = []
 train_CE_loss_list = []
-train_rec_loss_list = []
 test_acc_list = []
 test_CE_loss_list = []
-test_rec_loss_list = []
 
 for epoch in range(start_epoch, num_epoch+1):
     ''' Training part'''
@@ -181,7 +179,6 @@ for epoch in range(start_epoch, num_epoch+1):
 
         # Compute the loss
         batch_L_CE = CE_Loss(y_pred, train_y)
-        batch_L_rec = torch.mean((model.front[0]-model.remote[1])**2)
 
         # Clean the gradient
         model.zero_grad()
@@ -193,11 +190,9 @@ for epoch in range(start_epoch, num_epoch+1):
         model.step()
 
         train_CE_loss += len(train_x) * (batch_L_CE).item()
-        train_rec_loss += len(train_x) * (batch_L_rec).item()
         train_acc += np.sum(np.argmax(y_pred.detach().cpu().numpy(),
                                       axis=1) == train_y.cpu().numpy())
     train_CE_loss /= Train_Dataset.__len__()
-    train_rec_loss /= Train_Dataset.__len__()
     train_acc /= Train_Dataset.__len__()
 
     # Testing part
@@ -211,26 +206,21 @@ for epoch in range(start_epoch, num_epoch+1):
 
             # Compute the loss and acc
             test_CE_loss += CE_Loss(y_pred, test_y).item() * len(test_x)
-            test_rec_loss += torch.mean(
-                (model.front[0]-model.remote[1])**2).item() * len(test_x)
             test_acc += np.sum(np.argmax(y_pred.detach().cpu().numpy(),
                                          axis=1) == test_y.cpu().numpy())
     test_CE_loss /= len(Test_Dataset)
-    test_rec_loss /= len(Test_Dataset)
     test_acc /= len(Test_Dataset)
     # Output the result
-    print("Epoch [{}/{}] Time:{:.3f} secs Train_acc:{:.4f} train_CE_loss:{:.4f} train_rce_loss:{:.4f}".format(epoch, num_epoch, time.time()-epoch_start_time,
-                                                                                                              train_acc, train_CE_loss, train_rec_loss))
+    print("Epoch [{}/{}] Time:{:.3f} secs Train_acc:{:.4f} train_CE_loss:{:.4f}".format(epoch, num_epoch, time.time()-epoch_start_time,
+                                                                                        train_acc, train_CE_loss))
     print("Test_acc:{:.4f} test_CE_loss:{:.4f} test_rce_loss:{:.4f}".format(
         test_acc, test_CE_loss, test_rec_loss))
 
     # Append the accuracy and loss to list
     train_acc_list.append(train_acc)
     train_CE_loss_list.append(train_CE_loss)
-    train_rec_loss_list.append(train_rec_loss)
     test_acc_list.append(test_acc)
     test_CE_loss_list.append(test_CE_loss)
-    test_rec_loss_list.append(test_rec_loss)
 
     ''' Save the best model '''
     if test_acc > best_acc:
@@ -257,10 +247,6 @@ with open(os.path.join(saved_path, "train_CE_loss.csv"), "w") as f:
         f.write(str(train_CE_loss_list[i])+",")
     f.write(str(train_CE_loss_list[-1]))
 
-with open(os.path.join(saved_path, "train_rec_loss.csv"), "w") as f:
-    for i in range(len(train_rec_loss_list)-1):
-        f.write(str(train_rec_loss_list[i])+",")
-    f.write(str(train_rec_loss_list[-1]))
 
 # Record the validation accuracy and validation loss
 with open(os.path.join(saved_path, "test_accuracy.csv"), "w") as f:
@@ -272,7 +258,3 @@ with open(os.path.join(saved_path, "test_CE_loss.csv"), "w") as f:
     for i in range(len(test_CE_loss_list)-1):
         f.write(str(test_CE_loss_list[i])+",")
     f.write(str(test_CE_loss_list[-1]))
-with open(os.path.join(saved_path, "test_rec_loss.csv"), "w") as f:
-    for i in range(len(test_rec_loss_list)-1):
-        f.write(str(test_rec_loss_list[i])+",")
-    f.write(str(test_rec_loss_list[-1]))
