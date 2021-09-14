@@ -175,7 +175,9 @@ for epoch in range(start_epoch, num_epoch+1):
         train_y = train_y.cuda()
 
         # y_pred: (batch size, 10)
-        y_pred = model(train_x)
+        WARM = True if epoch <= args.warmup_epoch else False
+
+        y_pred = model(train_x, warmup=WARM)
 
         # Compute the loss
         batch_L_CE = CE_Loss(y_pred, train_y)

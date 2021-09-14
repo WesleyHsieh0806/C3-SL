@@ -198,7 +198,7 @@ class SplitResNet50(nn.Module):
         for model in self.models:
             model.eval()
 
-    def forward(self, image):
+    def forward(self, image, warmup=False):
         ''' 
         * Notice that we have to store the output of the 
         * front-end model so that we can compute gradient later
@@ -210,37 +210,37 @@ class SplitResNet50(nn.Module):
         self.remote = []
         z = self.models[0](image)
 
-        # Encode
-        encode_z = self.models[2].encode(z)
+        if not warmup:
+            # Encode
+            encode_z = self.models[2].encode(z)
 
-        shape = encode_z.shape
-        encode_z = encode_z.flatten(start_dim=1)
-        if self.split == "linear":
-            encode_z, STD, MEAN = normalize_for_circular(encode_z)  # normalize
+            shape = encode_z.shape
+            encode_z = encode_z.flatten(start_dim=1)
+            if self.split == "linear":
+                encode_z, STD, MEAN = normalize_for_circular(
+                    encode_z)  # normalize
 
-        # ECC Encryption
-        compress_V = self.ecc(encode_z)
-        self.front = [z, compress_V]
+            # ECC Encryption
+            compress_V = self.ecc(encode_z)
+            self.front = [z, compress_V]
 
-        ''' ******
-        * Cloud  *
-        **********
-        '''
+            ''' ******
+            * Cloud  *
+            **********
+            '''
 
-        # use requires_grad() Since the result of detach never requires grad
-        # detach() returns a new tensor but shares the old memory
-        # the gradient of tensor z.detach() != the gradient of z
-        self.remote.append(compress_V.detach().requires_grad_())
+            self.remote.append(compress_V)
 
-        # ECC Decryption
-        remote_en_recover_z = self.ecc.decrypt(self.remote[0])
+            # ECC Decryption
+            remote_en_recover_z = self.ecc.decrypt(self.remote[0])
 
-        # Decode
-        remote_en_recover_z = remote_en_recover_z.reshape(shape)
-        remote_de_recover_z = self.models[2].decode(remote_en_recover_z)
-        self.remote.append(remote_de_recover_z)
-
-        return self.models[1](remote_de_recover_z)
+            # Decode
+            remote_en_recover_z = remote_en_recover_z.reshape(shape)
+            remote_de_recover_z = self.models[2].decode(remote_en_recover_z)
+            self.remote.append(remote_de_recover_z)
+            return self.models[1](remote_de_recover_z)
+        else:
+            return self.models[1](z)
 
     def backward(self, L_CE):
         ''' When we call L_CE.backward(), it only backwards for the last half layers
@@ -250,13 +250,13 @@ class SplitResNet50(nn.Module):
         L = L_CE
         L.backward(retain_graph=True)
 
-        # Copy the gradient
-        # (1, nof_feature)
-        remote_grad_CompressV = self.remote[0].grad.clone()
+        # # Copy the gradient
+        # # (1, nof_feature)
+        # remote_grad_CompressV = self.remote[0].grad.clone()
 
-        # Send to the edge
-        grad_CompressV = remote_grad_CompressV
-        self.front[1].backward(grad_CompressV)
+        # # Send to the edge
+        # grad_CompressV = remote_grad_CompressV
+        # self.front[1].backward(grad_CompressV)
 
     def zero_grad(self):
         for optimizer in self.optimizers:
