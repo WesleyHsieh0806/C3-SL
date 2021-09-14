@@ -8,6 +8,7 @@ import torchvision.models
 import torch.nn as nn
 from utils import circular_conv, circular_corr, normalize_for_circular
 from math import sqrt
+from torchsummary import summary
 
 
 class ECC():
@@ -174,7 +175,7 @@ class SplitResNet50(nn.Module):
         # Split point
         spl_pnt = {
             "early": 4,
-            "middle": 5,
+            "middle": 6,
             "linear": 8
         }
         self.split = split
