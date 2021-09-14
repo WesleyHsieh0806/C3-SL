@@ -92,7 +92,7 @@ class SplitResNet50(nn.Module):
         # Split point
         spl_pnt = {
             "early": 4,
-            "middle": 5,
+            "middle": 6,
             "linear": 8
         }
         # Variables for compression module
@@ -102,7 +102,7 @@ class SplitResNet50(nn.Module):
             out_channel = input_channel // (compress_ratio // 4)
         elif split == "middle":
             spatial = 1
-            input_channel = 256
+            input_channel = 512
             out_channel = input_channel // (compress_ratio // 4)
         elif split == "linear":
             # No spatial compression
