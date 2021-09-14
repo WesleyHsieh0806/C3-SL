@@ -221,7 +221,8 @@ class SplitResNet50(nn.Module):
         z = self.models[0](image)
         shape = z.shape
         z = z.flatten(start_dim=1)
-        z, STD, MEAN = normalize_for_circular(z)  # normalize
+        if self.split == "linear":
+            z, STD, MEAN = normalize_for_circular(z)  # normalize
 
         # ECC Encryption
         compress_V, recover_z = self.ecc(z)
@@ -238,10 +239,6 @@ class SplitResNet50(nn.Module):
 
         # ECC Decryption
         remote_recover_z = self.ecc.decrypt(self.remote[0])
-        if self.split != "linear":
-            remote_recover_z = remote_recover_z * \
-                (STD*remote_recover_z.shape[-1])
-            remote_recover_z = remote_recover_z + MEAN
 
         return self.models[1](remote_recover_z.reshape(shape))
 
