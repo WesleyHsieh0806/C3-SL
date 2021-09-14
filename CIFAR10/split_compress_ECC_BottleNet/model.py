@@ -210,17 +210,16 @@ class SplitResNet50(nn.Module):
         self.remote = []
         z = self.models[0](image)
 
-        if not warmup:
-            # Encode
-            encode_z = self.models[2].encode(z)
+        # Encode
+        encode_z = self.models[2].encode(z)
+        shape = encode_z.shape
 
-            shape = encode_z.shape
+        if not warmup:
+            # ECC Encryption
             encode_z = encode_z.flatten(start_dim=1)
             if self.split == "linear":
                 encode_z, STD, MEAN = normalize_for_circular(
                     encode_z)  # normalize
-
-            # ECC Encryption
             compress_V = self.ecc(encode_z)
             self.front = [z, compress_V]
 
@@ -236,11 +235,11 @@ class SplitResNet50(nn.Module):
 
             # Decode
             remote_en_recover_z = remote_en_recover_z.reshape(shape)
-            remote_de_recover_z = self.models[2].decode(remote_en_recover_z)
-            self.remote.append(remote_de_recover_z)
-            return self.models[1](remote_de_recover_z)
         else:
-            return self.models[1](z)
+            remote_en_recover_z = encode_z
+        remote_de_recover_z = self.models[2].decode(remote_en_recover_z)
+        self.remote.append(remote_de_recover_z)
+        return self.models[1](remote_de_recover_z)
 
     def backward(self, L_CE):
         ''' When we call L_CE.backward(), it only backwards for the last half layers

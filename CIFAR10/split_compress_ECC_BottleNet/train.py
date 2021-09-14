@@ -161,10 +161,8 @@ for epoch in range(start_epoch, num_epoch+1):
     ''' Training part'''
     model.train()
     train_CE_loss = 0.
-    train_rec_loss = 0.
     train_acc = 0.
     test_CE_loss = 0.
-    test_rec_loss = 0.
     test_acc = 0.
     epoch_start_time = time.time()
     for i, (train_x, train_y) in enumerate(Train_Loader, 1):
@@ -213,8 +211,8 @@ for epoch in range(start_epoch, num_epoch+1):
     # Output the result
     print("Epoch [{}/{}] Time:{:.3f} secs Train_acc:{:.4f} train_CE_loss:{:.4f}".format(epoch, num_epoch, time.time()-epoch_start_time,
                                                                                         train_acc, train_CE_loss))
-    print("Test_acc:{:.4f} test_CE_loss:{:.4f} test_rce_loss:{:.4f}".format(
-        test_acc, test_CE_loss, test_rec_loss))
+    print("Test_acc:{:.4f} test_CE_loss:{:.4f} ".format(
+        test_acc, test_CE_loss))
 
     # Append the accuracy and loss to list
     train_acc_list.append(train_acc)
