@@ -122,7 +122,7 @@ Test_Loader = DataLoader(Test_Dataset, batch_size=batch_size, shuffle=False)
 '''
 
 start_epoch = 1
-learning_rate = 1e-4
+learning_rate = 1e-3
 num_epoch = args.epoch
 
 
