@@ -165,13 +165,13 @@ for epoch in range(start_epoch, num_epoch+1):
     test_CE_loss = 0.
     test_acc = 0.
     epoch_start_time = time.time()
+    WARM = True if epoch <= args.warmup_epoch else False
     for i, (train_x, train_y) in enumerate(Train_Loader, 1):
         print("Batch [{}/{}]".format(i, len(Train_Loader)), end='\r')
         train_x = train_x.cuda()
         train_y = train_y.cuda()
 
         # y_pred: (batch size, 10)
-        WARM = True if epoch <= args.warmup_epoch else False
 
         y_pred = model(train_x, warmup=WARM)
 
@@ -200,7 +200,7 @@ for epoch in range(start_epoch, num_epoch+1):
             test_x = test_x.cuda()
             test_y = test_y.cuda()
 
-            y_pred = model(test_x)
+            y_pred = model(test_x, warmup=WARM)
 
             # Compute the loss and acc
             test_CE_loss += CE_Loss(y_pred, test_y).item() * len(test_x)
