@@ -215,7 +215,8 @@ class SplitResNet50(nn.Module):
 
         shape = encode_z.shape
         encode_z = encode_z.flatten(start_dim=1)
-        encode_z, STD, MEAN = normalize_for_circular(encode_z)  # normalize
+        if self.split == "linear":
+            encode_z, STD, MEAN = normalize_for_circular(encode_z)  # normalize
 
         # ECC Encryption
         compress_V = self.ecc(encode_z)
