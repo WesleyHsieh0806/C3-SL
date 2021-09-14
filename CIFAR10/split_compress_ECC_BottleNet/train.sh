@@ -14,4 +14,4 @@ python train.py \
 --arch $ARCH \
 --split $SPLIT \
 --compression_ratio $Compression_ratio \
---warmup_epoch $warmup_epoch
+--warmup_epoch $WARMUP
