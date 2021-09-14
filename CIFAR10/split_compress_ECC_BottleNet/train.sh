@@ -3,6 +3,7 @@ BATCH=64
 EPOCH=200
 ARCH="resnet50"
 SPLIT="middle"
+WARMUP=1
 Compression_ratio=64
 
 
@@ -12,4 +13,5 @@ python train.py \
 --dump_path $DUMP_PATH \
 --arch $ARCH \
 --split $SPLIT \
---compression_ratio $Compression_ratio
+--compression_ratio $Compression_ratio \
+--warmup_epoch $warmup_epoch

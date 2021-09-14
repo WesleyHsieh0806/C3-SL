@@ -56,6 +56,9 @@ parser.add_argument("--split", required=True, type=str,
 parser.add_argument("--compression_ratio", required=True, type=int,
                     default=64,
                     help="The compression ratio of Compression module")
+parser.add_argument("--warmup_epoch", required=True, type=int,
+                    default=15,
+                    help="The number of warmup epoch")
 args = parser.parse_args()
 
 # Create directory for dump path
