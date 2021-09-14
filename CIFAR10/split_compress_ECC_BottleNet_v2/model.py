@@ -237,7 +237,7 @@ class SplitResNet50(nn.Module):
             remote_compress_V = compress_V
         # ECC Decryption
         remote_recover_z = self.ecc.decrypt(remote_compress_V.reshape([1, -1]))
-        remote_recover_z = remote_recover_z.reshape(z.shape)
+        remote_recover_z = remote_recover_z.reshape(shape)
         self.remote.append(remote_recover_z)
 
         return self.models[1](remote_recover_z)
