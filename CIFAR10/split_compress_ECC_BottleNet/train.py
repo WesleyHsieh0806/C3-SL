@@ -207,7 +207,7 @@ for epoch in range(start_epoch, num_epoch+1):
             # Compute the loss and acc
             test_CE_loss += CE_Loss(y_pred, test_y).item() * len(test_x)
             test_rec_loss += torch.mean(
-                (model.front[1]-model.front[0])**2).item() * len(test_x)
+                (model.front[0]-model.remote[1])**2).item() * len(test_x)
             test_acc += np.sum(np.argmax(y_pred.detach().cpu().numpy(),
                                          axis=1) == test_y.cpu().numpy())
     test_CE_loss /= len(Test_Dataset)
