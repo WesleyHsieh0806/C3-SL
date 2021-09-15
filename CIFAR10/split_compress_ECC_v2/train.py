@@ -205,6 +205,8 @@ for epoch in range(start_epoch, num_epoch+1):
             bs = test_x.shape[0] - (test_x.shape[0] % args.bcr)
             test_x = test_x[:bs]
             test_y = test_y[:bs]
+            if bs < args.bcr:
+                continue
 
             test_x = test_x.cuda()
             test_y = test_y.cuda()
