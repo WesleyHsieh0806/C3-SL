@@ -78,7 +78,7 @@ class SplitResNet50(nn.Module):
         '''
         assert compress_ratio >= 4
         assert (compress_ratio % 4) == 0
-        assert split in ["linear", "early", "middle"]
+        assert split in ["linear", "early", "middle", "middle-2"]
 
         super(SplitResNet50, self).__init__()
         # We have to change the last FC layer to output num_class scores
@@ -93,6 +93,7 @@ class SplitResNet50(nn.Module):
         spl_pnt = {
             "early": 4,
             "middle": 6,
+            "middle-2": 7,
             "linear": 8
         }
         # Variables for compression module
@@ -103,6 +104,10 @@ class SplitResNet50(nn.Module):
         elif split == "middle":
             spatial = 1
             input_channel = 512
+            out_channel = input_channel // (compress_ratio // 4)
+        elif split == "middle-2":
+            spatial = 1
+            input_channel = 1024
             out_channel = input_channel // (compress_ratio // 4)
         elif split == "linear":
             # No spatial compression
