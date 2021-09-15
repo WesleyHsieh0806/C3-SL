@@ -154,7 +154,7 @@ class SplitResNet50(nn.Module):
         # ECC Encryption
         compress_V = self.ecc(z)
         self.front = [compress_V]
-        print(compress_V.shape)
+
         ''' ******
         * Cloud  *
         **********
