@@ -56,10 +56,22 @@ parser.add_argument("--split", required=True, type=str,
 parser.add_argument("--compression_ratio", required=True, type=int,
                     default=64,
                     help="The compression ratio of Compression module")
-parser.add_argument("--warmup_epoch", required=True, type=int,
+parser.add_argument("--phase1_epoch", required=True, type=int,
                     default=15,
-                    help="The number of warmup epoch")
+                    help="The number of epoch for phase1 training")
+parser.add_argument("--phase2_epoch", required=True, type=int,
+                    default=15,
+                    help="The number of epoch for phase2 training")
+parser.add_argument("--bcr", required=True, type=int,
+                    default=64,
+                    help="The Batch Compression Ratio")
 args = parser.parse_args()
+
+# Error detection
+assert (args.batch % args.bcr) == 0
+assert args.batch >= args.bcr
+assert (args.phase1_epoch + args.phase2_epoch) < args.epoch
+
 
 # Create directory for dump path
 saved_path = os.path.join(
@@ -131,7 +143,7 @@ num_epoch = args.epoch
 
 if args.arch == "resnet50":
     model = SplitResNet50(
-        split=args.split, compress_ratio=args.compression_ratio)
+        split=args.split, compress_ratio=args.compression_ratio, bc_ratio=args.bcr)
 
 # Restore the model status from pickle
 if args.restore:
@@ -165,7 +177,25 @@ for epoch in range(start_epoch, num_epoch+1):
     test_CE_loss = 0.
     test_acc = 0.
     epoch_start_time = time.time()
-    WARM = True if epoch <= args.warmup_epoch else False
+    WARM = True if epoch <= args.phase1_epoch else False
+
+    # The phase of training
+    if epoch == start_epoch:
+        # Enter phase1, forward the model without using feature compression
+        # Open the gradient of resnet, CLose the gradient of compression module
+        model.requires_gradient_resnet(True)
+        model.requires_gradient_CpM(False)
+
+    elif epoch == (args.phase1_epoch+1):
+        # Enter phase2, forward the model with feature compression
+        # Close the gradient of resnet, Turn on the gradient of compression module
+        model.requires_gradient_resnet(False)
+        model.requires_gradient_CpM(True)
+    elif epoch == (args.phase1_epoch+args.phase2_epoch+1):
+        # Turn on both gradient computation to fine-tune the whole model
+        model.requires_gradient_resnet(True)
+        model.requires_gradient_CpM(True)
+
     for i, (train_x, train_y) in enumerate(Train_Loader, 1):
         print("Batch [{}/{}]".format(i, len(Train_Loader)), end='\r')
         train_x = train_x.cuda()
