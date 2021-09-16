@@ -76,24 +76,33 @@ class compression_module(nn.Module):
 class ECC():
     ''' Encryption and Compression Module'''
 
-    def __init__(self) -> None:
+    def __init__(self, compress_ratio) -> None:
         self.key = None
+        self.ratio = compress_ratio
 
     def generate_key(self, W):
-        # * Key:(Batch size, nof_feature)->(1, 1, Batch size, nof_feature)
+        # * Key:(compress_ratio, nof_feature)->(1, 1, compress_ratio, nof_feature)
         mean = 0
         dim = 1
         for i in range(1, len(W.shape)):
             dim *= W.shape[i]
         std = (1/dim) ** (1/2)
-        Key = (torch.randn(W.shape)*std + mean).cuda()
+
+        # Create the key
+        keyshape = [W.shape[i] for i in range(len(W.shape))]
+        keyshape[0] = self.ratio
+
+        Key = (torch.randn(keyshape)*std + mean)
+        if torch.cuda.is_available():
+            Key = Key.cuda()
         Key /= torch.norm(Key, dim=1, keepdim=True)
         Key = Key.reshape([1, 1, Key.shape[0], -1])
         self.key = Key
 
     def __call__(self, z):
         ''' 
-        * Return: Compressed_V(Detached) and  recover_z
+        * Return: a tensor that contains all compressV (n_group, n_feature)
+        * [Compress_V_1, Compress_V_2, ..., COmpress_V_Batchsize]
         '''
         # z:(Batch, noffeature)
 
@@ -101,37 +110,47 @@ class ECC():
         if self.key is None:
             self.generate_key(z)
 
-        # The last batch normally contains less samples, so we have to adjust the key here
+        compress_V_list = []
         self.bs = z.shape[0]
-        key = self.key[:, :, :self.bs, :]
+        # There are total self.bs//self.ratio groups to be compressed
+        n_group = self.bs//self.ratio
 
-        compress_V = circular_conv(z, key)
-        # Compress V (1, nof_feature)
+        for i in range(n_group):
 
-        return compress_V
+            group_z = z[i * self.ratio: (i+1) * self.ratio]
+            key = self.key[:, :, :group_z.shape[0], :]
+            # Compress V (1, nof_feature)
+            compress_V = circular_conv(group_z, key)
 
-    def decrypt(self, compress_V):
-        key = self.key[:, :, :self.bs, :]
-        return circular_corr(compress_V, key)
+            # add compress v into list
+            compress_V_list.append(compress_V)
+        return torch.cat(compress_V_list, dim=0)
 
-    def encrypt_Compressed_grad(self, compress_grad):
-        key = self.key[:, :, :1, :]
-        return circular_conv(compress_grad, key)
+    def decrypt(self, compress_V_list):
+        # There are total self.bs//self.ratio groups to be compressed
+        n_group = self.bs//self.ratio
+        recover_z_list = []
 
-    def decrypt_Compressed_grad(self, en_compress_grad):
-        key = self.key[:, :, :1, :]
-        return circular_corr(en_compress_grad, key)
+        for i in range(n_group):
+            compress_V = compress_V_list[i:i+1]
+            key = self.key[:, :, :self.ratio, :]
+            recover_group_z = circular_corr(compress_V, key)
+
+            recover_z_list.append(recover_group_z)
+
+        return torch.cat(recover_z_list, dim=0)
 
 
 class SplitResNet50(nn.Module):
-    def __init__(self, num_class=10, learning_rate=1e-4, split="linear", compress_ratio=64):
+    def __init__(self, num_class=10, learning_rate=1e-4, split="linear", compress_ratio=64, bc_ratio=64):
         '''
         * split: The split point
         * compress_ratio: Total compression ratio
         '''
+        split = split.lower()
         assert compress_ratio >= 4
         assert (compress_ratio % 4) == 0
-        assert split in ["linear", "early", "middle"]
+        assert split in ["linear", "early", "middle", "middle-2"]
 
         super(SplitResNet50, self).__init__()
         # We have to change the last FC layer to output num_class scores
@@ -147,6 +166,7 @@ class SplitResNet50(nn.Module):
         spl_pnt = {
             "early": 4,
             "middle": 6,
+            "middle-2": 7,
             "linear": 8
         }
         self.split = split
@@ -158,6 +178,10 @@ class SplitResNet50(nn.Module):
         elif split == "middle":
             spatial = 1
             input_channel = 512
+            out_channel = input_channel // (compress_ratio // 4)
+        elif split == "middle-2":
+            spatial = 1
+            input_channel = 1024
             out_channel = input_channel // (compress_ratio // 4)
         elif split == "linear":
             # No spatial compression
@@ -188,7 +212,7 @@ class SplitResNet50(nn.Module):
         self.optimizers = [torch.optim.Adam(
             model.parameters(), lr=learning_rate) for model in self.models]
         # Encryption and Compression Module
-        self.ecc = ECC()
+        self.ecc = ECC(bc_ratio)
 
     def train(self):
         for model in self.models:
@@ -197,6 +221,23 @@ class SplitResNet50(nn.Module):
     def eval(self):
         for model in self.models:
             model.eval()
+
+    def requires_gradient_resnet(self, requires_grad):
+        ''' 
+        * Change the requires_grad of Architecture
+        '''
+        for para in self.models[0].parameters():
+            para.requires_grad = requires_grad
+
+        for para in self.models[1].parameters():
+            para.requires_grad = requires_grad
+
+    def requires_gradient_CpM(self, requires_grad):
+        ''' 
+        * CHange the requires_grad in compression module
+        '''
+        for para in self.models[2].parameters():
+            para.requires_grad = requires_grad
 
     def forward(self, image, warmup=False):
         ''' 
@@ -218,12 +259,11 @@ class SplitResNet50(nn.Module):
                 z)  # normalize
         compress_V = self.ecc(z)
         self.front = [z, compress_V]
-
         if not warmup:
             # Encode
             encode_compress_V = self.models[2].encode(
-                compress_V.reshape([1, shape[1], shape[2], shape[3]]))
-
+                compress_V.reshape([compress_V.shape[0], shape[1], shape[2], shape[3]]))
+            print(encode_compress_V.shape)
         ''' ******
         * Cloud  *
         **********
@@ -236,7 +276,8 @@ class SplitResNet50(nn.Module):
         else:
             remote_compress_V = compress_V
         # ECC Decryption
-        remote_recover_z = self.ecc.decrypt(remote_compress_V.reshape([1, -1]))
+        remote_recover_z = self.ecc.decrypt(
+            remote_compress_V.reshape([compress_V.shape[0], -1]))
         remote_recover_z = remote_recover_z.reshape(shape)
         self.remote.append(remote_recover_z)
 
@@ -273,6 +314,7 @@ class SplitResNet50(nn.Module):
 
 
 if __name__ == "__main__":
-    input = torch.zeros([2, 3, 32, 32])
-    model = SplitResNet50(split="middle", compress_ratio=64)
-    print(model(input))
+    input = torch.zeros([64, 3, 32, 32])
+    model = SplitResNet50(split="Middle", compress_ratio=512, bc_ratio=8)
+    summary(model.models[0], (3, 32, 32))
+    model(input)
