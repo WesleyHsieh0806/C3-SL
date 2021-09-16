@@ -200,6 +200,6 @@ class SplitResNet50(nn.Module):
 
 
 if __name__ == "__main__":
-    model = SplitResNet50(split="middle", compress_ratio=1)
+    model = SplitResNet50(split="middle", compress_ratio=32)
     input = torch.zeros([64, 3, 32, 32])
     model(input)
