@@ -263,7 +263,6 @@ class SplitResNet50(nn.Module):
             # Encode
             encode_compress_V = self.models[2].encode(
                 compress_V.reshape([compress_V.shape[0], shape[1], shape[2], shape[3]]))
-            print(encode_compress_V.shape)
         ''' ******
         * Cloud  *
         **********
