@@ -7,13 +7,13 @@ from matplotlib.pyplot import cm
 '''
 
 ECC_path = os.path.join(os.path.dirname(__file__), "..",
-                        "split_compress_ECC_v2", "Resnet50_log", "Middle", "Compression8_Batch64_ep150")
+                        "split_compress_ECC_v2", "Resnet50_log", "Middle-2", "Compression64_Batch64_ep150")
 with open(os.path.join(ECC_path, "test_accuracy.csv"), 'r') as f:
     test_acc_ECC = list(map(float, f.readline().split(',')))[:100]
 
 
 Bottle_path = os.path.join(os.path.dirname(
-    __file__), "..", "BottleNet++", "Resnet50_log", "Middle", "B64_Compress8_Ep150")
+    __file__), "..", "BottleNet++", "Resnet50_log", "Middle-2", "B64_Compress64_Ep150")
 with open(os.path.join(Bottle_path, "test_accuracy_batch64.csv"), 'r') as f:
     test_acc_Bottle = list(map(float, f.readline().split(',')))[:100]
 
