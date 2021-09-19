@@ -7,6 +7,7 @@ from torchsummary import summary
 from utils import circular_conv, circular_corr, normalize_for_circular
 from thop import profile
 from pthflops import count_ops
+from ptflops import get_model_complexity_info
 
 
 class compression_module(nn.Module):
@@ -76,8 +77,8 @@ class SplitResNet50(nn.Module):
         * split: The split point
         * compress_ratio: Total compression ratio
         '''
-        assert compress_ratio >= 4
-        assert (compress_ratio % 4) == 0
+        assert (compress_ratio >= 4) or (split == "middle-2")
+        assert ((compress_ratio % 4) == 0) or (split == "middle-2")
         assert split in ["linear", "early", "middle", "middle-2"]
 
         super(SplitResNet50, self).__init__()
@@ -105,6 +106,10 @@ class SplitResNet50(nn.Module):
             spatial = 1
             input_channel = 512
             out_channel = input_channel // (compress_ratio // 4)
+        elif split == "middle-2" and (compress_ratio == 2):
+            spatial = 0
+            input_channel = 1024
+            out_channel = input_channel // (compress_ratio)
         elif split == "middle-2":
             spatial = 1
             input_channel = 1024
@@ -169,7 +174,6 @@ class SplitResNet50(nn.Module):
         # detach() returns a new tensor but shares the old memory
         # the gradient of tensor z.detach() != the gradient of z
         self.remote.append(encode_z.detach().requires_grad_())
-
         # Decode
         decrypt_z = self.models[2].decode(self.remote[0])
         self.remote.append(decrypt_z)
@@ -201,9 +205,11 @@ class SplitResNet50(nn.Module):
 
 
 if __name__ == "__main__":
-    model = SplitResNet50(split="linear", compress_ratio=64)
+    model = SplitResNet50(split="middle-2", compress_ratio=2)
     model.train()
     print(summary(model.models[0], (3, 32, 32)))
-    print(model.models[2])
-    input = torch.randn([2, 3, 32, 32])
-    y = model(input)
+    print(summary(model.models[2], (1024, 2, 2)))
+    macs, params = get_model_complexity_info(model.models[2], (1024, 2, 2), as_strings=True,
+                                             print_per_layer_stat=True, verbose=True)
+    print('{:<30}  {:<8}'.format('Computational complexity: ', macs))
+    print('{:<30}  {:<8}'.format('Number of parameters: ', params))
