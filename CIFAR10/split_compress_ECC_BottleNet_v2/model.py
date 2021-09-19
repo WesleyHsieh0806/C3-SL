@@ -212,7 +212,7 @@ class SplitResNet50(nn.Module):
         self.optimizers = [torch.optim.Adam(
             model.parameters(), lr=learning_rate) for model in self.models]
         self.optimizers[2] = torch.optim.Adam(
-            model.models[2].parameters(), lr=learning_rate*bc_ratio)  # Modify the learning rate of compression module
+            self.models[2].parameters(), lr=learning_rate*bc_ratio)  # Modify the learning rate of compression module
         # Encryption and Compression Module
         self.ecc = ECC(bc_ratio)
 
