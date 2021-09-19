@@ -202,7 +202,7 @@ for epoch in range(start_epoch, num_epoch+1):
         bs = train_x.shape[0] - (train_x.shape[0] % args.bcr)
         train_x = train_x[:bs]
         train_y = train_y[:bs]
-        if bs < args.bcr:
+        if bs <= args.bcr:
             continue
 
         train_x = train_x.cuda()
@@ -238,7 +238,7 @@ for epoch in range(start_epoch, num_epoch+1):
             bs = test_x.shape[0] - (test_x.shape[0] % args.bcr)
             test_x = test_x[:bs]
             test_y = test_y[:bs]
-            if bs < args.bcr:
+            if bs <= args.bcr:
                 continue
 
             test_x = test_x.cuda()
