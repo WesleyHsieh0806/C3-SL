@@ -41,10 +41,12 @@ class compression_module(nn.Module):
         B = x.size()[0]
 
         if self.spatial == 0:
-            x = torch.sigmoid(self.batchnorm1(self.conv1(x)))
+            # x = torch.sigmoid(self.batchnorm1(self.conv1(x)))
+            x = F.relu(self.conv1(x))
 
         elif self.spatial == 1:
-            x = torch.sigmoid(self.batchnorm1(self.conv3(x)))
+            # x = torch.sigmoid(self.batchnorm1(self.conv3(x)))
+            x = F.relu(self.conv3(x))
         return x
 
     def decode(self, x):
