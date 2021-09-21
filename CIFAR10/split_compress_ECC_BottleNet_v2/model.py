@@ -51,9 +51,11 @@ class compression_module(nn.Module):
 
     def decode(self, x):
         if self.spatial == 0:
-            x = F.relu(self.batchnorm2(self.conv2(x)))
+            # x = F.relu(self.batchnorm2(self.conv2(x)))
+            x = F.relu(self.conv2(x))
         else:
-            x = F.relu(self.batchnorm2(self.conv4(x)))
+            # x = F.relu(self.batchnorm2(self.conv4(x)))
+            x = F.relu(self.conv4(x))
         return x
 
     def forward(self, x):
