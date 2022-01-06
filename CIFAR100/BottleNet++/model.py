@@ -72,7 +72,7 @@ class compression_module(nn.Module):
 
 
 class SplitResNet50(nn.Module):
-    def __init__(self, num_class=10, learning_rate=1e-4, split="linear", compress_ratio=64):
+    def __init__(self, num_class=100, learning_rate=1e-4, split="linear", compress_ratio=64):
         '''
         * split: The split point
         * compress_ratio: Total compression ratio
