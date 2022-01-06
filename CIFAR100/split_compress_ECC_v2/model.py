@@ -80,7 +80,7 @@ class ECC():
 
 
 class SplitResNet50(nn.Module):
-    def __init__(self, num_class=10, learning_rate=1e-4, split="linear", compress_ratio=64):
+    def __init__(self, num_class=100, learning_rate=1e-4, split="linear", compress_ratio=64):
         '''
         * split: The split point
         * compress_ratio: Total compression ratio
@@ -200,6 +200,6 @@ class SplitResNet50(nn.Module):
 
 
 if __name__ == "__main__":
-    model = SplitResNet50(split="middle", compress_ratio=32)
-    input = torch.zeros([64, 3, 32, 32])
+    model = SplitResNet50(split="middle-2", compress_ratio=2)
+    input = torch.zeros([2, 3, 32, 32])
     model(input)
