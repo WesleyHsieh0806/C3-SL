@@ -9,7 +9,7 @@ import tensorflow_datasets as tfds
 Download CIFAR Training data and Testing data
 """
 # Construct a tf.data.Dataset
-train, test = tfds.as_numpy(tfds.load('CIFAR100', split=['train', 'test'],
+train, test = tfds.as_numpy(tfds.load('cifar100', split=['train', 'test'],
                                       data_dir='../CIFAR/', batch_size=-1))
 print("Size of training Image:{}".format(train['image'].shape))
 print("Size of testing Image:{}".format(test['image'].shape))
