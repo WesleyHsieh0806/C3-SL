@@ -1,9 +1,9 @@
 BATCH=64
 EPOCH=150
 ARCH="resnet50"
-SPLIT="middle"
+SPLIT="middle-2"
 Batch_Compression_Ratio=8
-DUMP_PATH="./Resnet50_log/Middle/Compression${Batch_Compression_Ratio}_Batch${BATCH}_ep${EPOCH}"
+DUMP_PATH="./Resnet50_log/${SPLIT}/Compression${Batch_Compression_Ratio}_Batch${BATCH}_ep${EPOCH}"
 python train.py \
 --batch $BATCH \
 --epoch $EPOCH \
