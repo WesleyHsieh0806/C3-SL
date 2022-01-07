@@ -107,7 +107,7 @@ Test_Loader = DataLoader(Test_Dataset, batch_size=batch_size, shuffle=False)
 
 
 class AlexNet(nn.Module):
-    def __init__(self, num_class=10):
+    def __init__(self, num_class=100):
         super(AlexNet, self).__init__()
 
         # We have to change the last FC layer to output num_class scores
@@ -122,7 +122,7 @@ class AlexNet(nn.Module):
 
 
 class ResNet50(nn.Module):
-    def __init__(self, num_class=10):
+    def __init__(self, num_class=100):
         super(ResNet50, self).__init__()
 
         # We have to change the last FC layer to output num_class scores
