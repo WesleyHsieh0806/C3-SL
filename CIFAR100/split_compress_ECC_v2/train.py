@@ -11,7 +11,7 @@ from PIL import Image
 import torchvision.transforms as transforms
 from argparse import ArgumentParser
 
-from model import SplitResNet50
+from model import SplitResNet50, SplitVGG16
 from torchvision.transforms.transforms import Lambda
 
 ''' 
@@ -49,10 +49,10 @@ parser.add_argument("--restore", required=False,
                     action="store_true", help="Whether or not to restore model status from the pickle files in dump_path")
 parser.add_argument("--arch", required=True, type=str,
                     default='alexnet',
-                    help="The Architecture to be trained:[alexnet/resnet50]")
+                    help="The Architecture to be trained:[vgg16/resnet50]")
 parser.add_argument("--split", required=True, type=str,
                     default='linear',
-                    help="The Split point of Resnet50")
+                    help="The Split point of Resnet50/vgg16")
 parser.add_argument("--bcr", required=True, type=int,
                     default=64,
                     help="The Batch Compression Ratio")
@@ -130,7 +130,8 @@ num_epoch = args.epoch
 
 if args.arch == "resnet50":
     model = SplitResNet50(split=args.split, compress_ratio=args.bcr)
-
+elif args.arch == "vgg16":
+    model = SplitVGG16(split=args.split, compress_ratio=args.bcr)
 # Restore the model status from pickle
 if args.restore:
     last_dict = torch.load(os.path.join(

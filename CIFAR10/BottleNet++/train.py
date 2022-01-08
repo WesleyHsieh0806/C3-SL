@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 from argparse import ArgumentParser
 from math import sqrt
 
-from model import SplitResNet50
+from model import SplitResNet50, SplitVGG16
 ''' 
 * Reference https://blog.openmined.org/split-neural-networks-on-pysyft/
 '''
@@ -121,6 +121,9 @@ learning_rate = 1e-4
 num_epoch = args.epoch
 if args.arch == "resnet50":
     model = SplitResNet50(
+        split=args.split, compress_ratio=args.compression_ratio)
+if args.arch == "vgg16":
+    model = SplitVGG16(
         split=args.split, compress_ratio=args.compression_ratio)
 model.cuda()
 loss = nn.CrossEntropyLoss()

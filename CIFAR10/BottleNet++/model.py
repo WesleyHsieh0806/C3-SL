@@ -204,12 +204,167 @@ class SplitResNet50(nn.Module):
             model.cuda()
 
 
+class SplitVGG16(nn.Module):
+    def __init__(self, num_class=10, learning_rate=1e-4, split="linear", compress_ratio=64):
+        '''
+        * split: The split point
+        * compress_ratio: Total compression ratio
+        '''
+        assert (compress_ratio >= 4) or (split == "middle-2")
+        assert ((compress_ratio % 4) == 0) or (split == "middle-2")
+        assert split in ["linear", "early", "middle", "middle-2"]
+
+        super(SplitVGG16, self).__init__()
+        # We have to change the last FC layer to output num_class scores
+        model = torchvision.models.vgg16(pretrained=True)
+
+        # Split the vgg16 into two parts
+        self.models = []  # [ConvBlocks, FC]
+
+        model.classifier[6] = nn.Linear(4096, num_class)
+        layer_list = list(model.children())
+
+        # Split point
+        if split != "linear":
+            spl_pnt = {
+                "early": 10,
+                "middle": 17,
+                "middle-2": 24,
+            }
+
+            # Convblocks
+            self.models.append(
+                nn.Sequential(
+                    *layer_list[0][:spl_pnt[split]]
+                )
+            )
+            # FC
+            self.models.append(
+                nn.Sequential(
+                    *layer_list[0][spl_pnt[split]:],
+                    layer_list[1],
+                    nn.Flatten(start_dim=1),
+                    layer_list[2],
+                )
+            )
+        else:
+            # Conv + FC
+            # Convblocks
+            self.models.append(
+                nn.Sequential(
+                    *layer_list[:2]
+                )
+            )
+            # FC
+            self.models.append(
+                nn.Sequential(
+                    nn.Flatten(start_dim=1),
+                    layer_list[2],
+                )
+            )
+        # Variables for compression module
+        if split == "early":
+            spatial = 1
+            input_channel = 128
+            out_channel = input_channel // (compress_ratio // 4)
+        elif split == "middle":
+            spatial = 1
+            input_channel = 256
+            out_channel = input_channel // (compress_ratio // 4)
+        elif split == "middle-2" and (compress_ratio == 2):
+            spatial = 0
+            input_channel = 512
+            out_channel = input_channel // (compress_ratio)
+        elif split == "middle-2":
+            spatial = 1
+            input_channel = 512
+            out_channel = input_channel // (compress_ratio // 4)
+        elif split == "linear":
+            # No spatial compression
+            spatial = 0
+            input_channel = 512
+            out_channel = input_channel // (compress_ratio)
+
+        # Compression module
+        self.models.append(compression_module(
+            input_channel=input_channel, hidden_channel=out_channel, spatial=spatial))
+
+        # Two optimizers for each half
+        self.optimizers = [torch.optim.Adam(
+            model.parameters(), lr=learning_rate) for model in self.models]
+        self.key = None
+
+    def train(self):
+        for model in self.models:
+            model.train()
+
+    def eval(self):
+        for model in self.models:
+            model.eval()
+
+    def forward(self, image):
+        '''
+        * Notice that we have to store the output of the
+        * front-end model so that we can compute gradient later
+        * front = [z] remote = [z.detach().requires_grad()]
+        * image->z | Split | z->output
+        '''
+        self.front = []
+        self.remote = []
+        z = self.models[0](image)
+
+        # Encode
+        encode_z = self.models[2].encode(z)
+        self.front.append(encode_z)
+        self.front.append(z)
+        '''
+        * Cloud
+        '''
+        # use requires_grad() Since the result of detach never requires grad
+        # detach() returns a new tensor but shares the old memory
+        # the gradient of tensor z.detach() != the gradient of z
+        self.remote.append(encode_z.detach().requires_grad_())
+        # Decode
+        decrypt_z = self.models[2].decode(self.remote[0])
+        self.remote.append(decrypt_z)
+
+        return self.models[1](decrypt_z)
+
+    def backward(self, loss):
+        ''' When we call loss.backward(), it only backwards for the last half layers
+        * So here we will manually compute the gradient for the front-half convblocks
+        '''
+        loss.backward()
+        # Copy the gradient
+        grad_z = self.remote[0].grad.clone()
+
+        self.front[0].backward(grad_z)
+
+    def zero_grad(self):
+        for optimizer in self.optimizers:
+            optimizer.zero_grad()
+
+    def step(self):
+        ''' Update parameters for both half models'''
+        for opt in self.optimizers:
+            opt.step()
+
+    def cuda(self):
+        for model in self.models:
+            model.cuda()
+
+
 if __name__ == "__main__":
-    model = SplitResNet50(split="middle-2", compress_ratio=2)
-    model.train()
-    print(summary(model.models[0], (3, 32, 32)))
-    print(summary(model.models[2], (1024, 2, 2)))
-    macs, params = get_model_complexity_info(model.models[2], (1024, 2, 2), as_strings=True,
-                                             print_per_layer_stat=True, verbose=True)
-    print('{:<30}  {:<8}'.format('Computational complexity: ', macs))
-    print('{:<30}  {:<8}'.format('Number of parameters: ', params))
+    # model = SplitResNet50(split="middle-2", compress_ratio=2)
+    # model.train()
+    # print(summary(model.models[0], (3, 32, 32)))
+    # print(summary(model.models[2], (1024, 2, 2)))
+    # macs, params = get_model_complexity_info(model.models[2], (1024, 2, 2), as_strings=True,
+    #                                          print_per_layer_stat=True, verbose=True)
+    # print('{:<30}  {:<8}'.format('Computational complexity: ', macs))
+    # print('{:<30}  {:<8}'.format('Number of parameters: ', params))
+
+    model = SplitVGG16(split="middle-2", compress_ratio=4)
+    # print(model.models)
+    input = torch.zeros([64, 3, 32, 32])
+    model(input)
