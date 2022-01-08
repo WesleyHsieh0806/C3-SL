@@ -11,7 +11,7 @@ from PIL import Image
 import torchvision.transforms as transforms
 from argparse import ArgumentParser
 
-from model import SplitResNet50
+from model import SplitResNet50, SplitVGG16
 from torchvision.transforms.transforms import Lambda
 
 ''' 
