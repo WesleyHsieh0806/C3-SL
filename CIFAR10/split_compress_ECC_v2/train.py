@@ -130,7 +130,8 @@ num_epoch = args.epoch
 
 if args.arch == "resnet50":
     model = SplitResNet50(split=args.split, compress_ratio=args.bcr)
-
+elif args.arch == "vgg16":
+    model = SplitVGG16(split=args.split, compress_ratio=args.bcr)
 # Restore the model status from pickle
 if args.restore:
     last_dict = torch.load(os.path.join(
