@@ -199,7 +199,146 @@ class SplitResNet50(nn.Module):
             model.cuda()
 
 
+class SplitVGG16(nn.Module):
+    def __init__(self, num_class=100, learning_rate=1e-4, split="linear", compress_ratio=64):
+        '''
+        * split: The split point
+        * compress_ratio: Total compression ratio
+        '''
+        assert split in ["linear", "early", "middle", "middle-2"]
+
+        super(SplitVGG16, self).__init__()
+        # We have to change the last FC layer to output num_class scores
+        model = torchvision.models.vgg16(pretrained=True)
+
+        # Split the vgg16 into two parts
+        self.models = []  # [ConvBlocks, FC]
+
+        model.classifier[6] = nn.Linear(4096, num_class)
+        layer_list = list(model.children())
+
+        # Split point
+        if split != "linear":
+            spl_pnt = {
+                "early": 10,
+                "middle": 17,
+                "middle-2": 24,
+            }
+
+            # Convblocks
+            self.models.append(
+                nn.Sequential(
+                    *layer_list[0][:spl_pnt[split]]
+                )
+            )
+            # FC
+            self.models.append(
+                nn.Sequential(
+                    *layer_list[0][spl_pnt[split]:],
+                    layer_list[1],
+                    nn.Flatten(start_dim=1),
+                    layer_list[2],
+                )
+            )
+        else:
+            # Conv + FC
+            # Convblocks
+            self.models.append(
+                nn.Sequential(
+                    *layer_list[:2]
+                )
+            )
+            # FC
+            self.models.append(
+                nn.Sequential(
+                    nn.Flatten(start_dim=1),
+                    layer_list[2],
+                )
+            )
+        self.split = split
+        # Two optimizers for each half
+        self.optimizers = [torch.optim.Adam(
+            model.parameters(), lr=learning_rate) for model in self.models]
+        # Encryption and Compression Module
+        self.ecc = ECC(compress_ratio)
+
+    def train(self):
+        for model in self.models:
+            model.train()
+
+    def eval(self):
+        for model in self.models:
+            model.eval()
+
+    def forward(self, image):
+        ''' 
+        * Notice that we have to store the output of the 
+        * front-end model so that we can compute gradient later
+        * front = [z] remote = [z.detach().requires_grad()]
+        * image->z | z-> K*z=V -> compressV -> K o compressV |-> z->output
+        * Reconstruction loss is computed between z and recover_z
+        '''
+        self.front = []
+        self.remote = []
+        z = self.models[0](image)
+        shape = z.shape
+        z = z.flatten(start_dim=1)
+        if self.split == "linear":
+            z, STD, MEAN = normalize_for_circular(z)  # normalize
+
+        # ECC Encryption
+        compress_V = self.ecc(z)
+        self.front = [compress_V]
+
+        ''' ******
+        * Cloud  *
+        **********
+        '''
+        # use requires_grad() Since the result of detach never requires grad
+        # detach() returns a new tensor but shares the old memory
+        # the gradient of tensor z.detach() != the gradient of z
+        self.remote.append(compress_V.detach().requires_grad_())
+
+        # ECC Decryption
+        remote_recover_z = self.ecc.decrypt(self.remote[0])
+
+        return self.models[1](remote_recover_z.reshape(shape))
+
+    def backward(self, L_CE):
+        ''' When we call L_CE.backward(), it only backwards for the last half layers
+        * So here we will manually compute the gradient for the front-half convblocks
+        '''
+        # Compute the total loss first
+        L = L_CE
+        L.backward(retain_graph=True)
+
+        # Copy the gradient
+        # (1, nof_feature)
+        remote_grad_CompressV = self.remote[0].grad.clone()
+
+        # Send to the edge
+        grad_CompressV = remote_grad_CompressV
+        self.front[0].backward(grad_CompressV)
+
+    def zero_grad(self):
+        for optimizer in self.optimizers:
+            optimizer.zero_grad()
+
+    def step(self):
+        ''' Update parameters for both half models'''
+        for opt in self.optimizers:
+            opt.step()
+
+    def cuda(self):
+        for model in self.models:
+            model.cuda()
+
+
 if __name__ == "__main__":
     model = SplitResNet50(split="middle-2", compress_ratio=2)
-    input = torch.zeros([2, 3, 32, 32])
+    input = torch.zeros([64, 3, 32, 32])
+    model(input)
+
+    model = SplitVGG16(split="middle-2", compress_ratio=2)
+    input = torch.zeros([64, 3, 32, 32])
     model(input)
