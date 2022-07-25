@@ -7,7 +7,9 @@
    
    <div align="center">
   <img width="85%" alt="C3-SL Framework" src="C3-SL_Framework.png">
+  <br><br><br>
    </div>
+   
    
    
    * **Batch-Wise Compression (A new Compression Paradigm for Split Learning)**
