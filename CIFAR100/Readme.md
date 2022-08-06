@@ -1,4 +1,4 @@
-# Split-Learning-Compression on CIFAR10
+# C3-SL on CIFAR100
 ## Environment
 * Python 3.6
 * Pytorch 1.4.0
