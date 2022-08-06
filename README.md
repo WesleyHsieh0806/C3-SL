@@ -34,7 +34,7 @@
       <a href="#running-usage---training">Usage</a>
     </li>
     <li>
-      <a href="#experiment-overview">Experiment Overview</a>
+      <a href="https://github.com/WesleyHsieh0806/C3-SL/edit/master/README.md#chart_with_upwards_trend-experiment-overview">Experiment Overview</a>
     </li>
     <li>
       <a href="#citations">Citations</a>
@@ -47,6 +47,10 @@
 
 ## :books: Prepare Dataset
    The source code can be found in [CIFAR-10/data preprocess src](https://github.com/WesleyHsieh0806/C3-SL/tree/master/CIFAR10/data%20preprocess%20src) and [CIFAR-100/data preprocess src](https://github.com/WesleyHsieh0806/C3-SL/tree/master/CIFAR100/data%20preprocess%20src).
+   
+   | Tasks | Datasets:point_down: |
+   | - | - | 
+   | Image Classification | [CIFAR-10](https://www.google.com/search?q=cifar+10&oq=cifar+10&aqs=chrome..69i57j0i512l4j69i60l3.4031j0j4&sourceid=chrome&ie=UTF-8), [CIFAR-100](https://www.google.com/search?q=cifar+10&oq=cifar+10&aqs=chrome..69i57j0i512l4j69i60l3.4031j0j4&sourceid=chrome&ie=UTF-8)|
    
    * Use the following commands:
    ```bash
@@ -65,10 +69,6 @@
    │   ├── download_data.py
    ```
    
-   
-   | Tasks | Datasets:point_down: |
-   | - | - | 
-   | Image Classification | [CIFAR-10](https://www.google.com/search?q=cifar+10&oq=cifar+10&aqs=chrome..69i57j0i512l4j69i60l3.4031j0j4&sourceid=chrome&ie=UTF-8), [CIFAR-100](https://www.google.com/search?q=cifar+10&oq=cifar+10&aqs=chrome..69i57j0i512l4j69i60l3.4031j0j4&sourceid=chrome&ie=UTF-8)|
 
 
 ## :running: Usage - Training
@@ -81,11 +81,10 @@
 * Other dependencies: numpy, matplotlib, tensorflow
    
 
-### Training with the [shell script](https://github.com/WesleyHsieh0806/C3-SL/blob/master/CIFAR100/C3-SL/train.sh).
-```bash
-cd CIFAR10/C3-SL
-./train.sh
-```
+### Training
+
+Modify parameters in the [shell script](https://github.com/WesleyHsieh0806/C3-SL/blob/master/CIFAR100/C3-SL/train.sh).
+
 | Parameters | Definition |
 | - | - | 
 | --batch | batch size |
@@ -94,6 +93,12 @@ cd CIFAR10/C3-SL
 | --arch | model architecture (resnet50/vgg16) |
 | --split | the split point of model |
 | --bcr | Batch Compression Ratio **R** |
+
+
+```bash
+cd CIFAR10/C3-SL
+./train.sh
+```
 
 
 ## :chart_with_upwards_trend: Experiment Overview
